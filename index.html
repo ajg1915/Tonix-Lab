@@ -617,6 +617,97 @@ function applyMonitor(){
   const on=(mode==='file')||monitorOn;
   setT(E.monGain.gain,on?1:0,0.03);
 }
+const NR_SRC=`class NR extends AudioWorkletProcessor{
+  constructor(opts){
+    super();const po=(opts&&opts.processorOptions)||{};
+    const N=512;this.N=N;this.H=128;this.on=!!po.on;this.alpha=po.alpha||3;this.floor=po.floor||0.03;
+    this.win=new Float32Array(N);for(let i=0;i<N;i++)this.win[i]=0.5-0.5*Math.cos(2*Math.PI*(i+0.5)/N);
+    this.fr=new Float32Array(N);this.acc=new Float32Array(N);
+    this.re=new Float32Array(N);this.im=new Float32Array(N);
+    const B=N/2+1;
+    this.noise=new Float32Array(B);this.ps=new Float32Array(B);this.g=new Float32Array(B).fill(1);this.raw=new Float32Array(B);
+    this.cnt=0;
+    this.cs=new Float32Array(N/2);this.sn=new Float32Array(N/2);
+    for(let i=0;i<N/2;i++){this.cs[i]=Math.cos(2*Math.PI*i/N);this.sn[i]=-Math.sin(2*Math.PI*i/N);}
+    this.rev=new Uint16Array(N);let bits=Math.log2(N);
+    for(let i=0;i<N;i++){let r=0;for(let b=0;b<bits;b++)if(i&(1<<b))r|=1<<(bits-1-b);this.rev[i]=r;}
+    this.port.onmessage=e=>{
+      const m=e.data||{};
+      if(typeof m.alpha==='number')this.alpha=m.alpha;
+      if(typeof m.floor==='number')this.floor=m.floor;
+      if(typeof m.on==='boolean'&&m.on!==this.on){this.on=m.on;this.fr.fill(0);this.acc.fill(0);this.g.fill(1);this.cnt=0;}
+    };
+  }
+  fft(re,im){
+    const N=this.N,rev=this.rev;
+    for(let i=0;i<N;i++){const j=rev[i];if(j>i){let t=re[i];re[i]=re[j];re[j]=t;t=im[i];im[i]=im[j];im[j]=t;}}
+    for(let size=2;size<=N;size<<=1){
+      const half=size>>1,step=N/size;
+      for(let s=0;s<N;s+=size){
+        for(let k=0,t=0;k<half;k++,t+=step){
+          const a=s+k,b=a+half,wr=this.cs[t],wi=this.sn[t];
+          const xr=re[b]*wr-im[b]*wi,xi=re[b]*wi+im[b]*wr;
+          re[b]=re[a]-xr;im[b]=im[a]-xi;re[a]+=xr;im[a]+=xi;
+        }
+      }
+    }
+  }
+  process(inputs,outputs){
+    const inp=inputs[0],out=outputs[0];
+    if(!out||!out.length)return true;
+    if(!inp||!inp.length||!inp[0]){for(let c=0;c<out.length;c++)out[c].fill(0);return true;}
+    const x=inp[0];
+    if(!this.on||x.length!==this.H){
+      for(let c=0;c<out.length;c++)out[c].set(inp[Math.min(c,inp.length-1)]);
+      return true;
+    }
+    const N=this.N,H=this.H,B=N/2+1,re=this.re,im=this.im,win=this.win,fr=this.fr,acc=this.acc;
+    fr.copyWithin(0,H);fr.set(x,N-H);
+    for(let i=0;i<N;i++){re[i]=fr[i]*win[i];im[i]=0;}
+    this.fft(re,im);
+    const raw=this.raw,ps=this.ps,noise=this.noise,g=this.g,alpha=this.alpha,floor=this.floor;
+    const warm=this.cnt<40;
+    for(let k=0;k<B;k++){
+      const p=re[k]*re[k]+im[k]*im[k];
+      ps[k]=0.5*ps[k]+0.5*p;
+      if(warm){noise[k]=(noise[k]*this.cnt+ps[k])/(this.cnt+1);}
+      else{let n=noise[k];n+=(ps[k]-n)*(ps[k]<n*3?0.01:0.0003);noise[k]=n<1e-12?1e-12:n;}
+      const r=1-alpha*noise[k]/(ps[k]+1e-12);
+      raw[k]=r>0?Math.max(floor,Math.sqrt(r)):floor;
+    }
+    this.cnt++;
+    for(let k=0;k<B;k++){
+      const a=raw[k>0?k-1:0],b=raw[k],c=raw[k<B-1?k+1:B-1];
+      const t=0.25*a+0.5*b+0.25*c;
+      g[k]=t>g[k]?0.5*g[k]+0.5*t:0.7*g[k]+0.3*t;
+    }
+    for(let k=0;k<B;k++){
+      const gk=g[k];re[k]*=gk;im[k]*=gk;
+      if(k>0&&k<N/2){re[N-k]*=gk;im[N-k]*=gk;}
+    }
+    for(let i=0;i<N;i++)im[i]=-im[i];
+    this.fft(re,im);
+    const sc=1/(N*1.5);
+    for(let i=0;i<N;i++)acc[i]+=re[i]*sc*win[i];
+    const o0=out[0];
+    for(let i=0;i<H;i++)o0[i]=acc[i];
+    for(let c=1;c<out.length;c++)out[c].set(o0);
+    acc.copyWithin(0,H);acc.fill(0,N-H);
+    return true;
+  }
+}
+registerProcessor('tonix-nr',NR);
+`;
+async function initNR(){
+  try{
+    if(!ctx.audioWorklet||typeof AudioWorkletNode==='undefined')return;
+    const url=URL.createObjectURL(new Blob([NR_SRC],{type:'text/javascript'}));
+    await ctx.audioWorklet.addModule(url);
+    const n=new AudioWorkletNode(ctx,'tonix-nr',{numberOfInputs:1,numberOfOutputs:1,outputChannelCount:[1],processorOptions:{on:false,alpha:3,floor:0.03}});
+    E.inBus.disconnect(E.inGain);E.inBus.connect(n);n.connect(E.inGain);E.nr=n;applyNR();
+  }catch(e){E.nr=null;}
+}
+function applyNR(){if(E.nr)E.nr.port.postMessage({on:noiseLvl>=2&&mode==='mic'});}
 let monitorOn=true;
 function savedMic(){try{return localStorage.getItem('psb.mic.v1')||'';}catch(e){return '';}}
 function savePow(v){try{localStorage.setItem('psb.power.v1',v?'1':'0');}catch(e){}}
@@ -919,7 +1010,7 @@ function setMode(m){
   ui.monRow.hidden=m==='file';
   if(m==='file'){stopMic();setNote(IN_ARTIFACT?micError():'','warn');if(IN_ARTIFACT)ui.srcNote.className='note warn';}
   else{if(filePlayer)filePlayer.pause();setNote('');if(powered)startMic().then(()=>setStatus('live',liveText())).catch(e=>{setNote(micError(e),'err');setStatus('warn','No input');});}
-  applyMonitor();
+  applyMonitor();applyNR();
 }
 ui.modeMic.addEventListener('click',()=>setMode('mic'));
 ui.modeFile.addEventListener('click',()=>setMode('file'));
@@ -928,7 +1019,7 @@ ui.outSel.addEventListener('change',async()=>{try{await ctx.setSinkId(ui.outSel.
 if(navigator.mediaDevices&&navigator.mediaDevices.addEventListener)navigator.mediaDevices.addEventListener('devicechange',()=>refreshDevices());
 ui.lastPlay.addEventListener('click',()=>{if(TP.take)stopTake();else if(takes.length)playTake(takes[0],0);});
 setInterval(()=>{ui.lastPlay.disabled=!takes.length;ui.lastPlay.textContent=TP.take?'Stop playback':'Play last take';},300);
-function setNoise(n,restart){noiseLvl=n;[['noiseOff',0],['noiseStd',1],['noiseMax',2]].forEach(([id,k])=>ui[id].setAttribute('aria-pressed',n===k));try{localStorage.setItem('psb.noise.v1',String(n));}catch(e){}if(restart&&powered&&mode==='mic')startMic().catch(e=>setNote(micError(e),'err'));}
+function setNoise(n,restart){noiseLvl=n;[['noiseOff',0],['noiseStd',1],['noiseMax',2]].forEach(([id,k])=>ui[id].setAttribute('aria-pressed',n===k));try{localStorage.setItem('psb.noise.v1',String(n));}catch(e){}applyNR();if(restart&&powered&&mode==='mic')startMic().catch(e=>setNote(micError(e),'err'));}
 ui.noiseOff.addEventListener('click',()=>setNoise(0,true));ui.noiseStd.addEventListener('click',()=>setNoise(1,true));ui.noiseMax.addEventListener('click',()=>setNoise(2,true));
 setNoise(noiseLvl,false);
 ui.monitor.addEventListener('click',()=>{monitorOn=!monitorOn;ui.monitor.setAttribute('aria-pressed',monitorOn);ui.monitor.textContent=monitorOn?'On':'Off';applyMonitor();});
@@ -1543,6 +1634,7 @@ function init(){
   buildPads();buildRack();
   const ok=buildEngine();
   if(!ok){setStatus('err','Web Audio is not supported here');ui.power.disabled=true;ui.rec.disabled=true;setNote('This browser has no Web Audio support. Try a current Chrome, Edge, Safari or Firefox.','err');return;}
+  initNR();
   filePlayer=new Player(E.inBus);backing=new Player(E.backGain);
   wirePlayer(filePlayer,fileUI);wirePlayer(backing,backUI);wireCamera();setupPlatform();idbOpen().then(()=>loadTakes());
   setT(E.backGain.gain,Math.pow(ui.backVol.value/100,1.6),0.01);
