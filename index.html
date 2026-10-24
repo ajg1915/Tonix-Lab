@@ -240,6 +240,7 @@ input[type=range]::-moz-range-thumb{width:10px;height:10px;border-radius:50%;bac
   padding:0 max(16px,env(safe-area-inset-left,0px)) calc(16px + env(safe-area-inset-bottom,0px))}
 .toast span{background:#2a2f39;border:1px solid var(--line-hi);border-radius:3px;padding:9px 14px;font-size:13px;opacity:0;transform:translateY(6px);transition:opacity .2s,transform .2s;max-width:520px}
 .toast.show span{opacity:1;transform:none}
+.wm{margin:14px 0 4px}.wm .seg{max-width:360px}.wm .seg button{height:40px;font-size:13px}
 </style>
 <style>:root{padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}body{margin:0}</style>
 </head><body>
@@ -254,6 +255,7 @@ input[type=range]::-moz-range-thumb{width:10px;height:10px;border-radius:50%;bac
       <button class="btn power" id="power" aria-pressed="false"><i class="led"></i><span id="powerTxt">Power on</span></button>
     </div>
   </header>
+  <div class="wm"><div class="seg" role="group" aria-label="Session type"><button id="wmPod" aria-pressed="false">Podcast</button><button id="wmMus" aria-pressed="false">Music</button></div><p class="note" id="wmNote">Pick Podcast or Music and the app sets the sound, noise removal, ear split and recording for you in one tap.</p></div>
   <p class="note" id="installNote" hidden></p>
 
   <section class="deck" aria-label="Monitoring and recording">
@@ -717,6 +719,7 @@ async function initNR(){
 }
 function applyNR(){if(E.nr)E.nr.port.postMessage({on:noiseLvl>=2&&mode==='mic'});}
 let monitorOn=true;
+let takePrefix='Take';
 let splitMode=0;try{const v=localStorage.getItem('psb.split.v1');if(v!==null&&+v>=0&&+v<=2)splitMode=+v;}catch(e){}
 function applySplit(){if(!E.monPan||!E.backPan)return;const t=splitMode===1?-1:splitMode===2?1:0;setT(E.backPan.pan,t,0.03);setT(E.monPan.pan,-t,0.03);}
 function savedMic(){try{return localStorage.getItem('psb.mic.v1')||'';}catch(e){return '';}}
@@ -780,7 +783,7 @@ let filePlayer=null,backing=null;
 /* ---------- microphone ---------- */
 const mic={stream:null,src:null};
 const ui={};
-['stLed','stText','bypass','power','powerTxt','scope','mIn','mOut','mGr','vIn','vOut','vGr','modeMic','modeFile','micBox','fileBox','devSel','outSel','outField','fileIn','fileName','filePlay','fileSeek','fileTime','srcNote','rec','timer','recState','monRow','micNow','splitRow','splitOff','splitL','splitR','noiseOff','noiseStd','noiseMax','monitor','lastPlay','camPanel','install','installNote','camState','camVid','camOff','camToggle','camFlip','camStage','camSel','camSave','camMirror','camNote','stage','stageVid','stagePreset','stageTimer','stageMeter','stageRec','stageExit','watch','watchVid','watchTitle','watchClose','backIn','backName','backPlay','backSeek','backTime','backVol','backVolV','backOff','backOffV','backPrint','pads','chips','saveForm','presetName','presetState','rack','takes','takesEmpty'].forEach(id=>ui[id]=document.getElementById(id));
+['stLed','stText','bypass','power','powerTxt','scope','mIn','mOut','mGr','vIn','vOut','vGr','modeMic','modeFile','micBox','fileBox','devSel','outSel','outField','fileIn','fileName','filePlay','fileSeek','fileTime','srcNote','rec','timer','recState','monRow','micNow','wmPod','wmMus','wmNote','splitRow','splitOff','splitL','splitR','noiseOff','noiseStd','noiseMax','monitor','lastPlay','camPanel','install','installNote','camState','camVid','camOff','camToggle','camFlip','camStage','camSel','camSave','camMirror','camNote','stage','stageVid','stagePreset','stageTimer','stageMeter','stageRec','stageExit','watch','watchVid','watchTitle','watchClose','backIn','backName','backPlay','backSeek','backTime','backVol','backVolV','backOff','backOffV','backPrint','pads','chips','saveForm','presetName','presetState','rack','takes','takesEmpty'].forEach(id=>ui[id]=document.getElementById(id));
 
 function setNote(text,kind){ui.srcNote.textContent=text||'';ui.srcNote.className='note'+(kind?' '+kind:'');}
 function micError(e){
@@ -1056,6 +1059,24 @@ setNoise(noiseLvl,false);
 function setSplit(n){splitMode=n;[['splitOff',0],['splitL',1],['splitR',2]].forEach(([id,k])=>ui[id].setAttribute('aria-pressed',n===k));try{localStorage.setItem('psb.split.v1',String(n));}catch(e){}applySplit();}
 ui.splitOff.addEventListener('click',()=>setSplit(0));ui.splitL.addEventListener('click',()=>setSplit(1));ui.splitR.addEventListener('click',()=>setSplit(2));
 setSplit(splitMode);
+const WORK={
+  pod:{name:'Podcast',pre:'clean',noise:2,split:0,vol:30,print:true,take:'Episode',note:'Podcast: voice first. Clean Voice sound, noise removal on Maximum, hear yourself in your headphones, music bed low under your voice. Takes are saved as Episodes with the bed mixed in.'},
+  mus:{name:'Music',pre:'super',noise:1,split:1,vol:80,print:false,take:'Take',note:'Music: track first. Super Studio sound, gentler noise filter so held notes are not clipped, track in your left ear and your voice in your right. Takes are your voice only, so you can mix them later.'}
+};
+function setMonitor(v){monitorOn=v;ui.monitor.setAttribute('aria-pressed',v);ui.monitor.textContent=v?'On':'Off';applyMonitor();}
+function applyWork(k,user){
+  const w=WORK[k];if(!w)return;
+  ui.wmPod.setAttribute('aria-pressed',k==='pod');ui.wmMus.setAttribute('aria-pressed',k==='mus');
+  ui.wmNote.textContent=w.note;takePrefix=w.take;
+  try{localStorage.setItem('psb.work.v1',k);}catch(e){}
+  if(!user)return;
+  loadPreset(w.pre);if(noiseLvl!==w.noise)setNoise(w.noise,true);setSplit(w.split);setMonitor(true);
+  ui.backVol.value=w.vol;ui.backVol.dispatchEvent(new Event('input'));
+  ui.backPrint.checked=w.print;ui.backPrint.dispatchEvent(new Event('change'));
+  toast(w.name+' mode set.');
+}
+ui.wmPod.addEventListener('click',()=>applyWork('pod',true));ui.wmMus.addEventListener('click',()=>applyWork('mus',true));
+{let k=null;try{k=localStorage.getItem('psb.work.v1');}catch(e){}if(WORK[k])applyWork(k,false);}
 ui.monitor.addEventListener('click',()=>{monitorOn=!monitorOn;ui.monitor.setAttribute('aria-pressed',monitorOn);ui.monitor.textContent=monitorOn?'On':'Off';applyMonitor();});
 
 /* ---------- file + backing UI ---------- */
@@ -1308,7 +1329,7 @@ function buildRow(t){
 }
 const safeName=s=>(s||'take').replace(/[^\w\- ]+/g,'').trim().replace(/\s+/g,'-')||'take';
 async function addTake(blob,dur,video){
-  const t={id:++takeSeq,name:'Take '+(takeSeq),blob,dur,video:!!video,mime:blob.type,size:blob.size,created:Date.now(),stored:false,peaks:null,buf:null,ext:extFor(blob.type,video)};
+  const t={id:++takeSeq,name:takePrefix+' '+(takeSeq),blob,dur,video:!!video,mime:blob.type,size:blob.size,created:Date.now(),stored:false,peaks:null,buf:null,ext:extFor(blob.type,video)};
   takes.unshift(t);
   ui.takes.insertBefore(buildRow(t),ui.takes.firstChild);
   ui.takesEmpty.hidden=true;
