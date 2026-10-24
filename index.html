@@ -137,8 +137,9 @@ input[type=range]::-moz-range-thumb{width:10px;height:10px;border-radius:50%;bac
 .chk input{accent-color:var(--amber);width:16px;height:16px;margin:0}
 
 /* presets */
-.pads{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:12px}
-@media (max-width:820px){.pads{grid-template-columns:repeat(2,minmax(0,1fr))}}
+.pads{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:12px}
+@media (max-width:1000px){.pads{grid-template-columns:repeat(3,minmax(0,1fr))}}
+@media (max-width:820px){.pads{grid-template-columns:repeat(2,minmax(0,1fr))}.pad:last-child:nth-child(odd){grid-column:1/-1}}
 .pad{position:relative;text-align:left;padding:14px 16px;background:linear-gradient(180deg,#242831,#1a1d24);border:1px solid var(--line-hi);border-radius:4px;display:grid;gap:6px;align-content:start;min-height:96px;min-width:0}
 .pad:hover{border-color:#586070}
 .pad .nm{font:800 26px/1 var(--f-display);letter-spacing:.06em;text-transform:uppercase;overflow-wrap:anywhere;padding-right:18px}
@@ -463,6 +464,8 @@ const FACTORY=[
    v:{lowCut:140,eqLow:-2,eqLM:-4,eqLMF:300,eqHM:4,eqHMF:4500,eqAir:5,compThr:-20,compRatio:3,compAtk:12,compRel:140,compMk:4,satDrive:12,satMix:15,chRate:.9,chDepth:60,chMix:42,dlTime:375,dlFb:38,dlTone:5500,dlMix:26,rvDecay:2.8,rvPre:30,rvDamp:10000,rvMix:30}},
   {id:'soul',name:'Old Soul',desc:'Warm, tape-soft, vintage room',color:'#e8924f',
    v:{lowCut:70,eqLow:3,eqLM:1.5,eqLMF:380,eqHM:-1.5,eqHMF:3000,eqAir:-3,compThr:-20,compRatio:3,compAtk:22,compRel:220,compMk:4,satDrive:50,satMix:40,chRate:.5,chDepth:20,chMix:0,dlTime:140,dlFb:18,dlTone:3200,dlMix:14,rvDecay:1.2,rvPre:10,rvDamp:4800,rvMix:18}}
+  {id:'clean',name:'Clean Voice',desc:'Noise removed, voice clear over your music',color:'#7be0a8',noise:2,
+   v:{lowCut:120,eqLow:-1,eqLM:-3,eqLMF:300,eqHM:2.5,eqHMF:3200,eqAir:0,compThr:-24,compRatio:3,compAtk:10,compRel:160,compMk:3,satDrive:10,satMix:10,chRate:.8,chDepth:30,chMix:0,dlTime:200,dlFb:15,dlTone:4000,dlMix:0,rvDecay:.8,rvPre:10,rvDamp:6000,rvMix:4}}
 ];
 
 /* ---------- state ---------- */
@@ -1355,11 +1358,12 @@ function paintMod(id){
 }
 
 /* ---------- presets ---------- */
-function allPresets(){return FACTORY.map(f=>({id:f.id,name:f.name,values:f.v,factory:true})).concat(custom.map(c=>({id:c.id,name:c.name,values:c.values,on:c.on,factory:false})));}
+function allPresets(){return FACTORY.map(f=>({id:f.id,name:f.name,values:f.v,noise:f.noise,factory:true})).concat(custom.map(c=>({id:c.id,name:c.name,values:c.values,on:c.on,factory:false})));}
 function loadPreset(id){
   const pr=allPresets().find(x=>x.id===id);if(!pr)return;
   P.forEach(p=>{if(p.session)return;state.values[p.id]=pr.values[p.id]!==undefined?pr.values[p.id]:p.def;});
   MODS.forEach(m=>{if(m.tog)state.on[m.id]=pr.on&&pr.on[m.id]===false?false:true;});
+  if(pr.noise!==undefined&&noiseLvl!==pr.noise)setNoise(pr.noise,true);
   cur={id:pr.id,dirty:false};
   repaintAll();applyAll();updatePresetUI();persist();
 }
