@@ -31,11 +31,19 @@
   --amber-soft:rgba(255,179,64,.15);
   --rec:#ff4a3a;
   --go:#3fcf8e;
+  --panel-top:#1b1e25;--panel-bot:#16181e;--field-bg:var(--field-bg);--hover:var(--hover);--hover-bg:var(--hover-bg);
+  --led-off:#2b2f37;--pad-top:#242831;--pad-bot:#1a1d24;--take-bg:var(--ink);--warn:#ffd08a;--err:#ff9d92;--sw-eq:#e9ecf3;
   --f-display:"Big Shoulders Display","Arial Narrow",Impact,sans-serif;
   --f-body:"IBM Plex Sans",system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;
   --f-mono:"IBM Plex Mono",ui-monospace,Menlo,Consolas,monospace;
   color-scheme:dark;
 }
+html[data-theme="light"]{--ink:#f3f1ec;--panel:#ffffff;--panel-2:#f4f2ee;--line:#dcd7cd;--line-hi:#c4beb1;--text:#1d1f24;--mute:#5b616d;--faint:#7d838f;--amber:#b86a00;--amber-soft:rgba(184,106,0,.12);--rec:#d6382a;--go:#17965f;
+  --panel-top:#ffffff;--panel-bot:#fbfaf7;--field-bg:#ffffff;--hover:#9a9385;--hover-bg:#ece9e2;
+  --led-off:#cfc9bd;--pad-top:#ffffff;--pad-bot:#f7f5f0;--take-bg:#fbfaf7;--warn:#8a5a00;--err:#b3261e;--sw-eq:#1d1f24;color-scheme:light;}
+@media (prefers-color-scheme: light){html[data-theme="system"]{--ink:#f3f1ec;--panel:#ffffff;--panel-2:#f4f2ee;--line:#dcd7cd;--line-hi:#c4beb1;--text:#1d1f24;--mute:#5b616d;--faint:#7d838f;--amber:#b86a00;--amber-soft:rgba(184,106,0,.12);--rec:#d6382a;--go:#17965f;
+  --panel-top:#ffffff;--panel-bot:#fbfaf7;--field-bg:#ffffff;--hover:#9a9385;--hover-bg:#ece9e2;
+  --led-off:#cfc9bd;--pad-top:#ffffff;--pad-bot:#f7f5f0;--take-bg:#fbfaf7;--warn:#8a5a00;--err:#b3261e;--sw-eq:#1d1f24;color-scheme:light;}}
 *{box-sizing:border-box}
 html,body{margin:0;background:var(--ink);color:var(--text)}
 html{-webkit-text-size-adjust:100%;text-size-adjust:100%;overscroll-behavior-y:contain}
@@ -60,13 +68,13 @@ button:disabled{cursor:not-allowed;opacity:.45}
 .brand small{font:500 11px var(--f-mono);letter-spacing:.14em;color:var(--mute);text-transform:uppercase}
 .top-r{display:flex;align-items:center;gap:10px;flex-wrap:wrap}
 .status{display:flex;align-items:center;gap:8px;font:400 12px var(--f-mono);color:var(--mute);min-width:0}
-.led{display:inline-block;width:9px;height:9px;border-radius:50%;background:#2b2f37;box-shadow:inset 0 0 0 1px rgba(0,0,0,.45);flex:none}
+.led{display:inline-block;width:9px;height:9px;border-radius:50%;background:var(--led-off);box-shadow:inset 0 0 0 1px rgba(0,0,0,.45);flex:none}
 .led.on{background:var(--go);box-shadow:0 0 8px 1px rgba(63,207,142,.55)}
 .led.amber.on{background:var(--amber);box-shadow:0 0 8px 1px rgba(255,179,64,.55)}
 .led.err{background:var(--rec);box-shadow:0 0 8px 1px rgba(255,74,58,.55)}
 
 .btn{display:inline-flex;align-items:center;justify-content:center;gap:8px;height:36px;padding:0 14px;border:1px solid var(--line-hi);background:var(--panel-2);border-radius:3px;font:600 12px var(--f-body);letter-spacing:.08em;text-transform:uppercase;white-space:nowrap}
-.btn:hover:not(:disabled){border-color:#586070;background:#282d36}
+.btn:hover:not(:disabled){border-color:var(--hover);background:var(--hover-bg)}
 .btn.sm{height:30px;padding:0 10px;font-size:11px}
 .btn[aria-pressed="true"]{background:var(--amber-soft);border-color:var(--amber);color:var(--amber)}
 .btn.power[aria-pressed="true"]{background:rgba(63,207,142,.13);border-color:var(--go);color:var(--go)}
@@ -75,14 +83,14 @@ button:disabled{cursor:not-allowed;opacity:.45}
 .file-btn:focus-within{outline:2px solid var(--amber);outline-offset:2px}
 
 /* panels */
-.panel{background:linear-gradient(180deg,#1b1e25,#16181e);border:1px solid var(--line);border-radius:4px;padding:14px 16px 16px;min-width:0}
+.panel{background:linear-gradient(180deg,var(--panel-top),var(--panel-bot));border:1px solid var(--line);border-radius:4px;padding:14px 16px 16px;min-width:0}
 .ph{display:flex;align-items:center;justify-content:space-between;gap:10px;margin:0 0 12px;min-height:20px}
 .ph h2{margin:0;font:600 11px var(--f-body);letter-spacing:.16em;text-transform:uppercase;color:var(--mute)}
 .rstate{font:400 11px var(--f-mono);color:var(--faint);text-align:right}
 .legend{display:flex;align-items:center;gap:6px;font:400 11px var(--f-mono);color:var(--faint)}
 .sw{display:inline-block;width:14px;height:3px;border-radius:2px}
 .sw-spec{background:var(--amber)}
-.sw-eq{background:#e9ecf3;margin-left:8px}
+.sw-eq{background:var(--sw-eq);margin-left:8px}
 
 .deck{display:grid;gap:16px;grid-template-columns:minmax(0,1.7fr) minmax(300px,1fr)}
 .side{display:grid;gap:16px;align-content:start;min-width:0}
@@ -106,10 +114,10 @@ canvas.scope{display:block;width:100%;height:240px}
 .seg button[aria-pressed="true"]{background:var(--amber-soft);color:var(--amber)}
 .field{display:grid;gap:5px;margin-top:12px}
 .field label,.mini label{font:600 10px var(--f-body);letter-spacing:.14em;text-transform:uppercase;color:var(--faint)}
-select,input[type=text]{height:34px;width:100%;background:#101216;border:1px solid var(--line-hi);border-radius:3px;padding:0 8px;min-width:0}
+select,input[type=text]{height:34px;width:100%;background:var(--field-bg);border:1px solid var(--line-hi);border-radius:3px;padding:0 8px;min-width:0}
 .note{margin:10px 0 0;font-size:12px;color:var(--mute)}
-.note.warn{color:#ffd08a}
-.note.err{color:#ff9d92}
+.note.warn{color:var(--warn)}
+.note.err{color:var(--err)}
 .file-row{display:flex;align-items:center;gap:10px;margin-top:12px;min-width:0}
 .fname{font:400 12px var(--f-mono);color:var(--mute);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;min-width:0}
 .player{display:grid;grid-template-columns:auto minmax(0,1fr) auto;align-items:center;gap:10px;margin-top:10px}
@@ -118,8 +126,8 @@ select,input[type=text]{height:34px;width:100%;background:#101216;border:1px sol
 input[type=range]{-webkit-appearance:none;appearance:none;height:22px;background:transparent;width:100%;min-width:0;margin:0}
 input[type=range]::-webkit-slider-runnable-track{height:4px;background:var(--line-hi);border-radius:2px}
 input[type=range]::-moz-range-track{height:4px;background:var(--line-hi);border-radius:2px}
-input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:14px;height:14px;margin-top:-5px;border-radius:50%;background:var(--amber);border:2px solid #14161b}
-input[type=range]::-moz-range-thumb{width:10px;height:10px;border-radius:50%;background:var(--amber);border:2px solid #14161b}
+input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:14px;height:14px;margin-top:-5px;border-radius:50%;background:var(--amber);border:2px solid var(--ink)}
+input[type=range]::-moz-range-thumb{width:10px;height:10px;border-radius:50%;background:var(--amber);border:2px solid var(--ink)}
 
 .rec-row{display:flex;align-items:center;gap:14px;flex-wrap:wrap}
 .rec-btn{flex:none;width:68px;height:68px;border-radius:50%;border:2px solid #5b2923;background:radial-gradient(circle at 35% 30%,#2a2d35,#171a20);display:grid;place-items:center;padding:0}
@@ -142,11 +150,11 @@ input[type=range]::-moz-range-thumb{width:10px;height:10px;border-radius:50%;bac
 .pads{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:12px}
 @media (max-width:1000px){.pads{grid-template-columns:repeat(3,minmax(0,1fr))}}
 @media (max-width:820px){.pads{grid-template-columns:repeat(2,minmax(0,1fr))}.pad:last-child:nth-child(odd){grid-column:1/-1}}
-.pad{position:relative;text-align:left;padding:14px 16px;background:linear-gradient(180deg,#242831,#1a1d24);border:1px solid var(--line-hi);border-radius:4px;display:grid;gap:6px;align-content:start;min-height:96px;min-width:0}
-.pad:hover{border-color:#586070}
+.pad{position:relative;text-align:left;padding:14px 16px;background:linear-gradient(180deg,var(--pad-top),var(--pad-bot));border:1px solid var(--line-hi);border-radius:4px;display:grid;gap:6px;align-content:start;min-height:96px;min-width:0}
+.pad:hover{border-color:var(--hover)}
 .pad .nm{font:800 26px/1 var(--f-display);letter-spacing:.06em;text-transform:uppercase;overflow-wrap:anywhere;padding-right:18px}
 .pad .ds{font-size:12px;color:var(--mute)}
-.pad .pl{position:absolute;top:14px;right:14px;width:9px;height:9px;border-radius:50%;background:#2b2f37}
+.pad .pl{position:absolute;top:14px;right:14px;width:9px;height:9px;border-radius:50%;background:var(--led-off)}
 .pad[aria-pressed="true"]{border-color:var(--pc);box-shadow:0 0 0 1px var(--pc),0 0 24px -8px var(--pc)}
 .pad[aria-pressed="true"] .pl{background:var(--pc);box-shadow:0 0 10px var(--pc)}
 .mine{display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:12px 20px;margin-top:14px;padding-top:14px;border-top:1px solid var(--line)}
@@ -182,11 +190,11 @@ input[type=range]::-moz-range-thumb{width:10px;height:10px;border-radius:50%;bac
 
 /* takes */
 .takes{display:grid;gap:10px}
-.take{display:grid;grid-template-columns:auto minmax(120px,200px) minmax(0,1fr) auto;align-items:center;gap:12px;padding:10px 12px;background:#14161b;border:1px solid var(--line);border-radius:3px}
+.take{display:grid;grid-template-columns:auto minmax(120px,200px) minmax(0,1fr) auto;align-items:center;gap:12px;padding:10px 12px;background:var(--take-bg);border:1px solid var(--line);border-radius:3px}
 @media (max-width:760px){.take{grid-template-columns:auto minmax(0,1fr)}.take .wave,.take .take-acts{grid-column:1/-1}}
 .take-meta{display:grid;gap:2px;min-width:0}
 .take-name{height:28px;padding:0 6px;background:transparent;border:1px solid transparent;border-radius:3px;font:600 13px var(--f-body);width:100%;min-width:0}
-.take-name:hover,.take-name:focus{border-color:var(--line-hi);background:#101216}
+.take-name:hover,.take-name:focus{border-color:var(--line-hi);background:var(--field-bg)}
 .take-info{font:400 11px var(--f-mono);color:var(--faint);padding-left:7px}
 .wave{position:relative;height:36px;background:#0c0d10;border-radius:2px;overflow:hidden;cursor:pointer;min-width:0}
 .wave canvas{position:absolute;top:0;right:0;bottom:0;left:0;width:100%;height:100%}
@@ -250,6 +258,7 @@ input[type=range]::-moz-range-thumb{width:10px;height:10px;border-radius:50%;bac
     <div class="brand"><h1>Tonix Lab</h1><small>Vocal channel &amp; recorder</small></div>
     <div class="top-r">
       <div class="status" role="status" aria-live="polite"><i class="led" id="stLed"></i><span id="stText">Standby</span></div>
+      <div class="seg seg3 theme-seg" role="group" aria-label="Theme"><button id="thDark" aria-pressed="true">Dark</button><button id="thSys" aria-pressed="false">System</button><button id="thLight" aria-pressed="false">Light</button></div>
       <button class="btn" id="install" hidden>Install app</button>
       <button class="btn" id="bypass" aria-pressed="false" title="Hear your voice without the effects">FX bypass</button>
       <button class="btn power" id="power" aria-pressed="false"><i class="led"></i><span id="powerTxt">Power on</span></button>
@@ -783,7 +792,7 @@ let filePlayer=null,backing=null;
 /* ---------- microphone ---------- */
 const mic={stream:null,src:null};
 const ui={};
-['stLed','stText','bypass','power','powerTxt','scope','mIn','mOut','mGr','vIn','vOut','vGr','modeMic','modeFile','micBox','fileBox','devSel','outSel','outNote','outField','fileIn','fileName','filePlay','fileSeek','fileTime','srcNote','rec','timer','recState','monRow','micNow','wmPod','wmMus','wmNote','splitRow','splitOff','splitL','splitR','noiseOff','noiseStd','noiseMax','monitor','lastPlay','camPanel','install','installNote','camState','camVid','camOff','camToggle','camFlip','camStage','camSel','camSave','camMirror','camNote','stage','stageVid','stagePreset','stageTimer','stageMeter','stageRec','stageExit','watch','watchVid','watchTitle','watchClose','backIn','backName','backPlay','backSeek','backTime','backVol','backVolV','backOff','backOffV','backPrint','pads','chips','saveForm','presetName','presetState','rack','takes','takesEmpty'].forEach(id=>ui[id]=document.getElementById(id));
+['stLed','stText','bypass','power','powerTxt','scope','mIn','mOut','mGr','vIn','vOut','vGr','modeMic','modeFile','micBox','fileBox','devSel','outSel','outNote','outField','fileIn','fileName','filePlay','fileSeek','fileTime','srcNote','rec','timer','recState','monRow','micNow','thDark','thSys','thLight','wmPod','wmMus','wmNote','splitRow','splitOff','splitL','splitR','noiseOff','noiseStd','noiseMax','monitor','lastPlay','camPanel','install','installNote','camState','camVid','camOff','camToggle','camFlip','camStage','camSel','camSave','camMirror','camNote','stage','stageVid','stagePreset','stageTimer','stageMeter','stageRec','stageExit','watch','watchVid','watchTitle','watchClose','backIn','backName','backPlay','backSeek','backTime','backVol','backVolV','backOff','backOffV','backPrint','pads','chips','saveForm','presetName','presetState','rack','takes','takesEmpty'].forEach(id=>ui[id]=document.getElementById(id));
 
 function setNote(text,kind){ui.srcNote.textContent=text||'';ui.srcNote.className='note'+(kind?' '+kind:'');}
 function micError(e){
@@ -1063,6 +1072,9 @@ setInterval(()=>{ui.lastPlay.disabled=!takes.length;ui.lastPlay.textContent=TP.t
 function setNoise(n,restart){noiseLvl=n;[['noiseOff',0],['noiseStd',1],['noiseMax',2]].forEach(([id,k])=>ui[id].setAttribute('aria-pressed',n===k));try{localStorage.setItem('psb.noise.v1',String(n));}catch(e){}applyNR();if(restart&&powered&&mode==='mic')startMic().catch(e=>setNote(micError(e),'err'));}
 ui.noiseOff.addEventListener('click',()=>setNoise(0,true));ui.noiseStd.addEventListener('click',()=>setNoise(1,true));ui.noiseMax.addEventListener('click',()=>setNoise(2,true));
 setNoise(noiseLvl,false);
+function setTheme(t){document.documentElement.dataset.theme=t;[['thDark','dark'],['thSys','system'],['thLight','light']].forEach(([id,k])=>ui[id].setAttribute('aria-pressed',t===k));try{localStorage.setItem('psb.theme.v1',t);}catch(e){}}
+ui.thDark.addEventListener('click',()=>setTheme('dark'));ui.thSys.addEventListener('click',()=>setTheme('system'));ui.thLight.addEventListener('click',()=>setTheme('light'));
+{let t='dark';try{t=localStorage.getItem('psb.theme.v1')||'dark';}catch(e){}setTheme(['dark','system','light'].includes(t)?t:'dark');}
 function setSplit(n){splitMode=n;[['splitOff',0],['splitL',1],['splitR',2]].forEach(([id,k])=>ui[id].setAttribute('aria-pressed',n===k));try{localStorage.setItem('psb.split.v1',String(n));}catch(e){}applySplit();}
 ui.splitOff.addEventListener('click',()=>setSplit(0));ui.splitL.addEventListener('click',()=>setSplit(1));ui.splitR.addEventListener('click',()=>setSplit(2));
 setSplit(splitMode);
