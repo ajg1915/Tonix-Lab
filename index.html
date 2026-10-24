@@ -618,6 +618,8 @@ function applyMonitor(){
   setT(E.monGain.gain,on?1:0,0.03);
 }
 let monitorOn=true;
+function savedMic(){try{return localStorage.getItem('psb.mic.v1')||'';}catch(e){return '';}}
+function savePow(v){try{localStorage.setItem('psb.power.v1',v?'1':'0');}catch(e){}}
 let noiseLvl=2,nf=0.002;try{const v=localStorage.getItem('psb.noise.v1');if(v!==null&&+v>=0&&+v<=2)noiseLvl=+v;}catch(e){}
 
 /* gate detector */
@@ -714,13 +716,13 @@ function stopMic(){
 async function startMic(){
   stopMic();
   if(!navigator.mediaDevices||!navigator.mediaDevices.getUserMedia){const e=new Error('unsupported');e.name='NotSupportedError';throw e;}
-  const id=ui.devSel.value;
+  const id=ui.devSel.value||savedMic();
   const nr=noiseLvl>=1;
   const audio={echoCancellation:nr,noiseSuppression:nr,autoGainControl:false,latency:{ideal:0.01}};
   if(id)audio.deviceId={exact:id};
   let stream;
   try{stream=await navigator.mediaDevices.getUserMedia({audio});}
-  catch(e){if(e.name==='OverconstrainedError'&&id){ui.devSel.value='';return startMic();}throw e;}
+  catch(e){if(e.name==='OverconstrainedError'&&id){ui.devSel.value='';try{localStorage.removeItem('psb.mic.v1');}catch(x){}return startMic();}throw e;}
   mic.stream=stream;mic.src=ctx.createMediaStreamSource(stream);mic.src.connect(E.inBus);
   const tr=stream.getAudioTracks()[0];
   tr.addEventListener('ended',()=>{if(mic.stream===stream){stopMic();setStatus('warn','Mic disconnected');setNote('The microphone was unplugged or turned off. Reconnect it and choose it again.','warn');}});
@@ -880,8 +882,8 @@ function liveText(){
 async function powerOn(){
   if(!E.ready)return;
   unlockAudio();
-  await ctx.resume();
-  powered=true;setAudioSession();wake();
+  if(ctx.state!=='running')await Promise.race([ctx.resume().catch(()=>{}),new Promise(r=>setTimeout(r,500))]);
+  powered=true;savePow(true);setAudioSession();wake();
   ui.power.setAttribute('aria-pressed','true');ui.powerTxt.textContent='Power off';
   if(mode==='mic'){
     try{await startMic();setNote('');setStatus('live',liveText());}
@@ -894,12 +896,19 @@ function powerOff(){
   if(filePlayer)filePlayer.pause();
   if(backing)backing.pause();
   stopTake();
-  powered=false;unwake();
+  powered=false;savePow(false);unwake();
   ui.power.setAttribute('aria-pressed','false');ui.powerTxt.textContent='Power on';
   setStatus('off','Standby');
   if(ctx)ctx.suspend();
 }
 ui.power.addEventListener('click',()=>{powered?powerOff():powerOn();});
+async function autoPower(){
+  if(IN_ARTIFACT||powered||mode!=='mic')return;
+  let on=false;try{on=localStorage.getItem('psb.power.v1')==='1';}catch(e){}
+  if(!on)return;
+  let ok=false;try{const r=await navigator.permissions.query({name:'microphone'});ok=r.state==='granted';}catch(e){}
+  if(ok)powerOn();
+}
 ui.bypass.addEventListener('click',()=>{state.bypass=!state.bypass;ui.bypass.setAttribute('aria-pressed',state.bypass);applyAll();});
 
 function setMode(m){
@@ -914,7 +923,7 @@ function setMode(m){
 }
 ui.modeMic.addEventListener('click',()=>setMode('mic'));
 ui.modeFile.addEventListener('click',()=>setMode('file'));
-ui.devSel.addEventListener('change',()=>{if(powered&&mode==='mic')startMic().catch(e=>setNote(micError(e),'err'));});
+ui.devSel.addEventListener('change',()=>{try{localStorage.setItem('psb.mic.v1',ui.devSel.value);}catch(e){}if(powered&&mode==='mic')startMic().catch(e=>setNote(micError(e),'err'));});
 ui.outSel.addEventListener('change',async()=>{try{await ctx.setSinkId(ui.outSel.value||'');}catch(e){toast('That output could not be selected.');}});
 if(navigator.mediaDevices&&navigator.mediaDevices.addEventListener)navigator.mediaDevices.addEventListener('devicechange',()=>refreshDevices());
 ui.lastPlay.addEventListener('click',()=>{if(TP.take)stopTake();else if(takes.length)playTake(takes[0],0);});
@@ -1555,6 +1564,7 @@ function init(){
   else window.addEventListener('resize',fitAll);
   if(!IN_ARTIFACT)refreshDevices();
   requestAnimationFrame(frame);
+  autoPower();
 }
 init();
 })();
