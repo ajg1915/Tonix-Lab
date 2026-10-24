@@ -119,7 +119,7 @@ input[type=range]::-moz-range-track{height:4px;background:var(--line-hi);border-
 input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:14px;height:14px;margin-top:-5px;border-radius:50%;background:var(--amber);border:2px solid #14161b}
 input[type=range]::-moz-range-thumb{width:10px;height:10px;border-radius:50%;background:var(--amber);border:2px solid #14161b}
 
-.rec-row{display:flex;align-items:center;gap:18px}
+.rec-row{display:flex;align-items:center;gap:14px;flex-wrap:wrap}
 .rec-btn{flex:none;width:68px;height:68px;border-radius:50%;border:2px solid #5b2923;background:radial-gradient(circle at 35% 30%,#2a2d35,#171a20);display:grid;place-items:center;padding:0}
 .rec-btn i{display:block;width:30px;height:30px;border-radius:50%;background:radial-gradient(circle at 35% 30%,#ff8274,#e03324 60%,#9b1f15);transition:border-radius .15s,width .15s,height .15s}
 .rec-btn[aria-pressed="true"]{border-color:var(--rec)}
@@ -303,10 +303,11 @@ input[type=range]::-moz-range-thumb{width:10px;height:10px;border-radius:50%;bac
         <div class="rec-row">
           <button class="rec-btn" id="rec" aria-pressed="false" aria-label="Record"><i></i></button>
           <div class="timer" id="timer">00:00.0</div>
+          <button class="btn" id="lastPlay" disabled>Play last take</button>
         </div>
         <div class="tgl-row" id="monRow">
-          <div><b>Monitor</b><div class="note" style="margin:2px 0 0">Hear yourself in earbuds. Speakers will feed back. Bluetooth adds delay.</div></div>
-          <button class="btn" id="monitor" aria-pressed="false">Off</button>
+          <div><b>Hear myself</b><div class="note" style="margin:2px 0 0">Your voice plays in your earbuds while you record, like a podcast. Turn off if you use speakers (feedback). Bluetooth adds a little delay.</div></div>
+          <button class="btn" id="monitor" aria-pressed="true">On</button>
         </div>
         <div class="sub">
           <div class="sub-h">Backing track</div>
@@ -612,7 +613,7 @@ function applyMonitor(){
   const on=(mode==='file')||monitorOn;
   setT(E.monGain.gain,on?1:0,0.03);
 }
-let monitorOn=false;
+let monitorOn=true;
 
 /* gate detector */
 setInterval(()=>{
@@ -670,7 +671,7 @@ let filePlayer=null,backing=null;
 /* ---------- microphone ---------- */
 const mic={stream:null,src:null};
 const ui={};
-['stLed','stText','bypass','power','powerTxt','scope','mIn','mOut','mGr','vIn','vOut','vGr','modeMic','modeFile','micBox','fileBox','devSel','outSel','outField','fileIn','fileName','filePlay','fileSeek','fileTime','srcNote','rec','timer','recState','monRow','monitor','camPanel','install','installNote','camState','camVid','camOff','camToggle','camFlip','camStage','camSel','camSave','camMirror','camNote','stage','stageVid','stagePreset','stageTimer','stageMeter','stageRec','stageExit','watch','watchVid','watchTitle','watchClose','backIn','backName','backPlay','backSeek','backTime','backVol','backVolV','backOff','backOffV','backPrint','pads','chips','saveForm','presetName','presetState','rack','takes','takesEmpty'].forEach(id=>ui[id]=document.getElementById(id));
+['stLed','stText','bypass','power','powerTxt','scope','mIn','mOut','mGr','vIn','vOut','vGr','modeMic','modeFile','micBox','fileBox','devSel','outSel','outField','fileIn','fileName','filePlay','fileSeek','fileTime','srcNote','rec','timer','recState','monRow','monitor','lastPlay','camPanel','install','installNote','camState','camVid','camOff','camToggle','camFlip','camStage','camSel','camSave','camMirror','camNote','stage','stageVid','stagePreset','stageTimer','stageMeter','stageRec','stageExit','watch','watchVid','watchTitle','watchClose','backIn','backName','backPlay','backSeek','backTime','backVol','backVolV','backOff','backOffV','backPrint','pads','chips','saveForm','presetName','presetState','rack','takes','takesEmpty'].forEach(id=>ui[id]=document.getElementById(id));
 
 function setNote(text,kind){ui.srcNote.textContent=text||'';ui.srcNote.className='note'+(kind?' '+kind:'');}
 function micError(e){
@@ -909,6 +910,8 @@ ui.modeFile.addEventListener('click',()=>setMode('file'));
 ui.devSel.addEventListener('change',()=>{if(powered&&mode==='mic')startMic().catch(e=>setNote(micError(e),'err'));});
 ui.outSel.addEventListener('change',async()=>{try{await ctx.setSinkId(ui.outSel.value||'');}catch(e){toast('That output could not be selected.');}});
 if(navigator.mediaDevices&&navigator.mediaDevices.addEventListener)navigator.mediaDevices.addEventListener('devicechange',()=>refreshDevices());
+ui.lastPlay.addEventListener('click',()=>{if(TP.take)stopTake();else if(takes.length)playTake(takes[0],0);});
+setInterval(()=>{ui.lastPlay.disabled=!takes.length;ui.lastPlay.textContent=TP.take?'Stop playback':'Play last take';},300);
 ui.monitor.addEventListener('click',()=>{monitorOn=!monitorOn;ui.monitor.setAttribute('aria-pressed',monitorOn);ui.monitor.textContent=monitorOn?'On':'Off';applyMonitor();});
 
 /* ---------- file + backing UI ---------- */
