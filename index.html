@@ -277,12 +277,12 @@ input[type=range]::-moz-range-thumb{width:10px;height:10px;border-radius:50%;bac
           <button id="modeFile" aria-pressed="false">Audio file</button>
         </div>
         <div id="micBox">
-          <div class="field"><label for="devSel">Input device</label><select id="devSel"><option value="">System default</option></select></div>
+          <div class="field"><label for="devSel">Input (your mic)</label><select id="devSel"><option value="">System default</option></select></div>
           <p class="note" id="micNow" role="status"></p>
-          <div class="field" id="outField" hidden><label for="outSel">Monitor output</label><select id="outSel"><option value="">System default</option></select></div>
           <div class="field"><label>Background noise removal</label><div class="seg seg3" role="group" aria-label="Background noise removal"><button id="noiseOff" aria-pressed="false">Off</button><button id="noiseStd" aria-pressed="false">Standard</button><button id="noiseMax" aria-pressed="true">Maximum</button></div><p class="note" style="margin-top:8px">Standard turns on your device's built-in noise filter. Maximum adds an automatic gate that silences the mic between words and learns your room's noise. Works best with a close mic.</p></div>
           <p class="note">Pick your wireless mic's receiver above, not the earbuds' built-in mic. On Bluetooth earbuds, using their mic drops playback to call quality.</p>
         </div>
+        <div class="field" id="outField"><label for="outSel">Output (your earbuds)</label><select id="outSel"><option value="">System default</option></select><p class="note" id="outNote" role="status"></p></div>
         <div id="fileBox" hidden>
           <div class="file-row"><label class="btn sm file-btn">Load vocal file<input type="file" id="fileIn" accept="audio/*" class="sr"></label><span class="fname" id="fileName">No file loaded</span></div>
           <div class="player"><button class="btn sm" id="filePlay" disabled>Play</button><input type="range" id="fileSeek" min="0" max="1000" value="0" aria-label="File position" disabled><span class="tm" id="fileTime">0:00 / 0:00</span></div>
@@ -783,7 +783,7 @@ let filePlayer=null,backing=null;
 /* ---------- microphone ---------- */
 const mic={stream:null,src:null};
 const ui={};
-['stLed','stText','bypass','power','powerTxt','scope','mIn','mOut','mGr','vIn','vOut','vGr','modeMic','modeFile','micBox','fileBox','devSel','outSel','outField','fileIn','fileName','filePlay','fileSeek','fileTime','srcNote','rec','timer','recState','monRow','micNow','wmPod','wmMus','wmNote','splitRow','splitOff','splitL','splitR','noiseOff','noiseStd','noiseMax','monitor','lastPlay','camPanel','install','installNote','camState','camVid','camOff','camToggle','camFlip','camStage','camSel','camSave','camMirror','camNote','stage','stageVid','stagePreset','stageTimer','stageMeter','stageRec','stageExit','watch','watchVid','watchTitle','watchClose','backIn','backName','backPlay','backSeek','backTime','backVol','backVolV','backOff','backOffV','backPrint','pads','chips','saveForm','presetName','presetState','rack','takes','takesEmpty'].forEach(id=>ui[id]=document.getElementById(id));
+['stLed','stText','bypass','power','powerTxt','scope','mIn','mOut','mGr','vIn','vOut','vGr','modeMic','modeFile','micBox','fileBox','devSel','outSel','outNote','outField','fileIn','fileName','filePlay','fileSeek','fileTime','srcNote','rec','timer','recState','monRow','micNow','wmPod','wmMus','wmNote','splitRow','splitOff','splitL','splitR','noiseOff','noiseStd','noiseMax','monitor','lastPlay','camPanel','install','installNote','camState','camVid','camOff','camToggle','camFlip','camStage','camSel','camSave','camMirror','camNote','stage','stageVid','stagePreset','stageTimer','stageMeter','stageRec','stageExit','watch','watchVid','watchTitle','watchClose','backIn','backName','backPlay','backSeek','backTime','backVol','backVolV','backOff','backOffV','backPrint','pads','chips','saveForm','presetName','presetState','rack','takes','takesEmpty'].forEach(id=>ui[id]=document.getElementById(id));
 
 function setNote(text,kind){ui.srcNote.textContent=text||'';ui.srcNote.className='note'+(kind?' '+kind:'');}
 function micError(e){
@@ -810,7 +810,11 @@ async function refreshDevices(selId,camId){
   fill(ui.camSel,list.filter(d=>d.kind==='videoinput'),camId,'Camera');
   ui.camFlip.hidden=ui.camSel.options.length<3;
   const outs=list.filter(d=>d.kind==='audiooutput');
-  if(ctx&&typeof ctx.setSinkId==='function'&&outs.length>0){ui.outField.hidden=false;fill(ui.outSel,outs,null,'Output');}
+  const canSink=!!(ctx&&typeof ctx.setSinkId==='function');
+  const named=outs.filter(d=>d.deviceId&&d.deviceId!=='default'&&d.deviceId!=='communications');
+  ui.outField.hidden=false;
+  if(canSink&&named.length>0){fill(ui.outSel,named,savedOut(),'Earbuds');ui.outSel.disabled=false;ui.outNote.textContent='Pick your earbuds or speaker. Your mic stays on the input above.';}
+  else{ui.outSel.disabled=true;ui.outNote.textContent=canSink?'No output list here. Sound goes to your device output, so connect your earbuds to this device and they are used.':"This browser cannot choose the output. Sound goes to your device's output: connect your earbuds and they are used.";}
 }
 function stopMic(){
   if(mic.src){try{mic.src.disconnect();}catch(e){}}
@@ -821,9 +825,10 @@ const BT_RE=/bluetooth|airpods|buds|headset|hands.?free|hfp|beats|jabra|bose|\bw
 const EXT_RE=/usb|type.?c|lightning|external|line.?in|interface|scarlett|yeti|rode|shure|audio device|wired|wireless|\blav/i;
 function micScore(l){l=l||'';if(BT_RE.test(l))return -10;if(EXT_RE.test(l))return 10;if(/built.?in|internal|iphone|ipad|macbook|microphone array/i.test(l))return 1;return 3;}
 function micChoice(){try{return localStorage.getItem('psb.mic.v1');}catch(e){return null;}}
+function userMicOk(){const c=micChoice();if(c===null)return false;try{return !BT_RE.test(localStorage.getItem('psb.micLabel.v1')||'');}catch(e){return false;}}
 let autoMicTries=0,dcT=0;
 async function autoPickMic(tr){
-  if(micChoice()!==null||autoMicTries>2)return false;
+  if(userMicOk()||autoMicTries>2)return false;
   let list;try{list=await navigator.mediaDevices.enumerateDevices();}catch(e){return false;}
   const ins=list.filter(d=>d.kind==='audioinput'&&d.deviceId&&d.deviceId!=='default'&&d.deviceId!=='communications'&&d.label);
   let best=null,bs=-99;ins.forEach(d=>{const s=micScore(d.label);if(s>bs){bs=s;best=d;}});
@@ -839,7 +844,7 @@ function showMic(tr){
 async function startMic(){
   stopMic();
   if(!navigator.mediaDevices||!navigator.mediaDevices.getUserMedia){const e=new Error('unsupported');e.name='NotSupportedError';throw e;}
-  const id=ui.devSel.value||savedMic();
+  const id=ui.devSel.value||(userMicOk()?savedMic():'');
   const nr=noiseLvl>=1;
   const audio={echoCancellation:nr,noiseSuppression:nr,autoGainControl:false,latency:{ideal:0.01}};
   if(id)audio.deviceId={exact:id};
@@ -1008,7 +1013,7 @@ async function powerOn(){
   if(!E.ready)return;
   unlockAudio();
   if(ctx.state!=='running')await Promise.race([ctx.resume().catch(()=>{}),new Promise(r=>setTimeout(r,500))]);
-  powered=true;savePow(true);setAudioSession();wake();
+  powered=true;savePow(true);setAudioSession();wake();applySavedOut();
   ui.power.setAttribute('aria-pressed','true');ui.powerTxt.textContent='Power off';
   if(mode==='mic'){
     try{await startMic();setNote('');setStatus('live',liveText());}
@@ -1048,9 +1053,11 @@ function setMode(m){
 }
 ui.modeMic.addEventListener('click',()=>setMode('mic'));
 ui.modeFile.addEventListener('click',()=>setMode('file'));
-ui.devSel.addEventListener('change',()=>{try{localStorage.setItem('psb.mic.v1',ui.devSel.value);}catch(e){}if(powered&&mode==='mic')startMic().catch(e=>setNote(micError(e),'err'));});
-ui.outSel.addEventListener('change',async()=>{try{await ctx.setSinkId(ui.outSel.value||'');}catch(e){toast('That output could not be selected.');}});
-if(navigator.mediaDevices&&navigator.mediaDevices.addEventListener)navigator.mediaDevices.addEventListener('devicechange',()=>{refreshDevices();clearTimeout(dcT);dcT=setTimeout(()=>{if(powered&&mode==='mic'&&!R.active&&micChoice()===null){autoMicTries=0;startMic().catch(()=>{});}},700);});
+ui.devSel.addEventListener('change',()=>{try{localStorage.setItem('psb.mic.v1',ui.devSel.value);localStorage.setItem('psb.micLabel.v1',ui.devSel.options[ui.devSel.selectedIndex]?ui.devSel.options[ui.devSel.selectedIndex].text:'');}catch(e){}if(powered&&mode==='mic')startMic().catch(e=>setNote(micError(e),'err'));});
+function savedOut(){try{return localStorage.getItem('psb.out.v1')||'';}catch(e){return '';}}
+function applySavedOut(){const so=savedOut();if(so&&ctx&&typeof ctx.setSinkId==='function')ctx.setSinkId(so).catch(()=>{});}
+ui.outSel.addEventListener('change',async()=>{try{localStorage.setItem('psb.out.v1',ui.outSel.value);}catch(e){}try{await ctx.setSinkId(ui.outSel.value||'');}catch(e){toast('That output could not be selected.');}});
+if(navigator.mediaDevices&&navigator.mediaDevices.addEventListener)navigator.mediaDevices.addEventListener('devicechange',()=>{refreshDevices();clearTimeout(dcT);dcT=setTimeout(()=>{if(powered&&mode==='mic'&&!R.active&&!userMicOk()){autoMicTries=0;startMic().catch(()=>{});}},700);});
 ui.lastPlay.addEventListener('click',()=>{if(TP.take)stopTake();else if(takes.length)playTake(takes[0],0);});
 setInterval(()=>{ui.lastPlay.disabled=!takes.length;ui.lastPlay.textContent=TP.take?'Stop playback':'Play last take';},300);
 function setNoise(n,restart){noiseLvl=n;[['noiseOff',0],['noiseStd',1],['noiseMax',2]].forEach(([id,k])=>ui[id].setAttribute('aria-pressed',n===k));try{localStorage.setItem('psb.noise.v1',String(n));}catch(e){}applyNR();if(restart&&powered&&mode==='mic')startMic().catch(e=>setNote(micError(e),'err'));}
@@ -1690,6 +1697,7 @@ function init(){
   const ok=buildEngine();
   if(!ok){setStatus('err','Web Audio is not supported here');ui.power.disabled=true;ui.rec.disabled=true;setNote('This browser has no Web Audio support. Try a current Chrome, Edge, Safari or Firefox.','err');return;}
   initNR();
+  applySavedOut();
   filePlayer=new Player(E.inBus);backing=new Player(E.backGain);
   wirePlayer(filePlayer,fileUI);wirePlayer(backing,backUI);wireCamera();setupPlatform();idbOpen().then(()=>loadTakes());
   setT(E.backGain.gain,Math.pow(ui.backVol.value/100,1.6),0.01);
