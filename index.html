@@ -805,6 +805,7 @@ function micError(e){
   if(n==='NotSupportedError')return 'This page needs https:// (or localhost) before the browser will offer the microphone.';
   return 'The microphone could not start ('+(n||'unknown error')+').';
 }
+let knownOuts=null;
 async function refreshDevices(selId,camId){
   if(!navigator.mediaDevices||!navigator.mediaDevices.enumerateDevices)return;
   let list;try{list=await navigator.mediaDevices.enumerateDevices();}catch(e){return;}
@@ -822,6 +823,8 @@ async function refreshDevices(selId,camId){
   const canSink=!!(ctx&&typeof ctx.setSinkId==='function');
   const named=outs.filter(d=>d.deviceId&&d.deviceId!=='default'&&d.deviceId!=='communications');
   ui.outField.hidden=false;
+  if(knownOuts!==null){const fresh=named.filter(d=>!knownOuts.includes(d.deviceId));if(fresh.length)toast((fresh[0].label||'New output')+' connected. Choose it under Output to switch.');}
+  knownOuts=named.map(d=>d.deviceId);
   if(canSink&&named.length>0){fill(ui.outSel,named,savedOut(),'Earbuds');ui.outSel.disabled=false;ui.outNote.textContent='Pick your earbuds or speaker. Your mic stays on the input above.';}
   else{ui.outSel.disabled=true;ui.outNote.textContent=canSink?'No output list here. Sound goes to your device output, so connect your earbuds to this device and they are used.':"This browser cannot choose the output. Sound goes to your device's output: connect your earbuds and they are used.";}
 }
