@@ -274,6 +274,7 @@ input[type=range]::-moz-range-thumb{width:10px;height:10px;border-radius:50%;bac
         <div id="micBox">
           <div class="field"><label for="devSel">Input device</label><select id="devSel"><option value="">System default</option></select></div>
           <div class="field" id="outField" hidden><label for="outSel">Monitor output</label><select id="outSel"><option value="">System default</option></select></div>
+          <div class="field"><label>Background noise removal</label><div class="seg" role="group" aria-label="Background noise removal"><button id="noiseOff" aria-pressed="false">Off</button><button id="noiseStd" aria-pressed="false">Standard</button><button id="noiseMax" aria-pressed="true">Maximum</button></div><p class="note" style="margin-top:8px">Standard turns on your device's built-in noise filter. Maximum adds an automatic gate that silences the mic between words and learns your room's noise. Works best with a close mic.</p></div>
           <p class="note">Pick your wireless mic's receiver above, not the earbuds' built-in mic. On Bluetooth earbuds, using their mic drops playback to call quality.</p>
         </div>
         <div id="fileBox" hidden>
@@ -614,17 +615,19 @@ function applyMonitor(){
   setT(E.monGain.gain,on?1:0,0.03);
 }
 let monitorOn=true;
+let noiseLvl=2,nf=0.002;try{const v=localStorage.getItem('psb.noise.v1');if(v!==null&&+v>=0&&+v<=2)noiseLvl=+v;}catch(e){}
 
 /* gate detector */
 setInterval(()=>{
   if(!E.ready||ctx.state!=='running')return;
-  const thr=state.values.gateThr;
-  if(thr<=-80){if(!E.gateOpen){E.gateOpen=true;setT(E.gate.gain,1,0.01);}return;}
+  let thr=state.values.gateThr;
+  if(thr<=-80&&noiseLvl<2){if(!E.gateOpen){E.gateOpen=true;setT(E.gate.gain,1,0.01);}return;}
   tdata(E.gateAn,E.gBuf);
   let m=0;for(let i=0;i<E.gBuf.length;i++){const a=Math.abs(E.gBuf[i]);if(a>m)m=a;}
+  if(noiseLvl>=2){nf=m<nf?Math.max(m,1e-4):Math.min(nf*1.0003,0.003);thr=Math.max(thr,toDb(nf)+10);}
   const now=performance.now();
   if(toDb(m)>thr){E.lastAbove=now;if(!E.gateOpen){E.gateOpen=true;setT(E.gate.gain,1,0.004);}}
-  else if(E.gateOpen&&now-E.lastAbove>140){E.gateOpen=false;setT(E.gate.gain,0.03,0.07);}
+  else if(E.gateOpen&&now-E.lastAbove>140){E.gateOpen=false;setT(E.gate.gain,noiseLvl>=2?0.01:0.03,0.07);}
 },10);
 
 /* ---------- file players (decoded, so they sync with the recorder) ---------- */
@@ -671,7 +674,7 @@ let filePlayer=null,backing=null;
 /* ---------- microphone ---------- */
 const mic={stream:null,src:null};
 const ui={};
-['stLed','stText','bypass','power','powerTxt','scope','mIn','mOut','mGr','vIn','vOut','vGr','modeMic','modeFile','micBox','fileBox','devSel','outSel','outField','fileIn','fileName','filePlay','fileSeek','fileTime','srcNote','rec','timer','recState','monRow','monitor','lastPlay','camPanel','install','installNote','camState','camVid','camOff','camToggle','camFlip','camStage','camSel','camSave','camMirror','camNote','stage','stageVid','stagePreset','stageTimer','stageMeter','stageRec','stageExit','watch','watchVid','watchTitle','watchClose','backIn','backName','backPlay','backSeek','backTime','backVol','backVolV','backOff','backOffV','backPrint','pads','chips','saveForm','presetName','presetState','rack','takes','takesEmpty'].forEach(id=>ui[id]=document.getElementById(id));
+['stLed','stText','bypass','power','powerTxt','scope','mIn','mOut','mGr','vIn','vOut','vGr','modeMic','modeFile','micBox','fileBox','devSel','outSel','outField','fileIn','fileName','filePlay','fileSeek','fileTime','srcNote','rec','timer','recState','monRow','noiseOff','noiseStd','noiseMax','monitor','lastPlay','camPanel','install','installNote','camState','camVid','camOff','camToggle','camFlip','camStage','camSel','camSave','camMirror','camNote','stage','stageVid','stagePreset','stageTimer','stageMeter','stageRec','stageExit','watch','watchVid','watchTitle','watchClose','backIn','backName','backPlay','backSeek','backTime','backVol','backVolV','backOff','backOffV','backPrint','pads','chips','saveForm','presetName','presetState','rack','takes','takesEmpty'].forEach(id=>ui[id]=document.getElementById(id));
 
 function setNote(text,kind){ui.srcNote.textContent=text||'';ui.srcNote.className='note'+(kind?' '+kind:'');}
 function micError(e){
@@ -709,7 +712,8 @@ async function startMic(){
   stopMic();
   if(!navigator.mediaDevices||!navigator.mediaDevices.getUserMedia){const e=new Error('unsupported');e.name='NotSupportedError';throw e;}
   const id=ui.devSel.value;
-  const audio={echoCancellation:false,noiseSuppression:false,autoGainControl:false,latency:{ideal:0.01}};
+  const nr=noiseLvl>=1;
+  const audio={echoCancellation:nr,noiseSuppression:nr,autoGainControl:false,latency:{ideal:0.01}};
   if(id)audio.deviceId={exact:id};
   let stream;
   try{stream=await navigator.mediaDevices.getUserMedia({audio});}
@@ -912,6 +916,9 @@ ui.outSel.addEventListener('change',async()=>{try{await ctx.setSinkId(ui.outSel.
 if(navigator.mediaDevices&&navigator.mediaDevices.addEventListener)navigator.mediaDevices.addEventListener('devicechange',()=>refreshDevices());
 ui.lastPlay.addEventListener('click',()=>{if(TP.take)stopTake();else if(takes.length)playTake(takes[0],0);});
 setInterval(()=>{ui.lastPlay.disabled=!takes.length;ui.lastPlay.textContent=TP.take?'Stop playback':'Play last take';},300);
+function setNoise(n,restart){noiseLvl=n;[['noiseOff',0],['noiseStd',1],['noiseMax',2]].forEach(([id,k])=>ui[id].setAttribute('aria-pressed',n===k));try{localStorage.setItem('psb.noise.v1',String(n));}catch(e){}if(restart&&powered&&mode==='mic')startMic().catch(e=>setNote(micError(e),'err'));}
+ui.noiseOff.addEventListener('click',()=>setNoise(0,true));ui.noiseStd.addEventListener('click',()=>setNoise(1,true));ui.noiseMax.addEventListener('click',()=>setNoise(2,true));
+setNoise(noiseLvl,false);
 ui.monitor.addEventListener('click',()=>{monitorOn=!monitorOn;ui.monitor.setAttribute('aria-pressed',monitorOn);ui.monitor.textContent=monitorOn?'On':'Off';applyMonitor();});
 
 /* ---------- file + backing UI ---------- */
