@@ -93,8 +93,8 @@ var PRESETS = [
   { id: 'smooth', label: 'Smooth 60', note: '720p at 60 fps for fast motion, like gaming or sport.', v: { video: true, res: '720', fps: 60, vKbps: 4500, vMode: 'fixed', aKbps: 160, stereo: true } },
   { id: 'audio', label: 'Audio only', note: 'No video. Smallest and lightest, great for podcasts and music.', v: { video: false, vKbps: 0, vMode: 'fixed', aKbps: 192, stereo: true } }
 ];
-var DEF = { video: true, res: '720', fps: 30, vKbps: 2500, vMode: 'fixed', codec: 'h264', aKbps: 128, stereo: true, sr: 48000, ec: false, ns: false, agc: false, cam: '', mic: '' };
-var TYPES = { video: 'b', res: 's', fps: 'n', vKbps: 'n', vMode: 's', codec: 's', aKbps: 'n', stereo: 'b', sr: 'n', ec: 'b', ns: 'b', agc: 'b', cam: 's', mic: 's' };
+var DEF = { video: true, res: '720', fps: 30, vKbps: 2500, vMode: 'fixed', codec: 'h264', aKbps: 128, stereo: true, sr: 48000, ec: false, ns: false, agc: false, cam: '', mic: '', src: 'cam', m3u8: '', aud: '' };
+var TYPES = { video: 'b', res: 's', fps: 'n', vKbps: 'n', vMode: 's', codec: 's', aKbps: 'n', stereo: 'b', sr: 'n', ec: 'b', ns: 'b', agc: 'b', cam: 's', mic: 's', src: 's', m3u8: 's', aud: 's' };
 var S = (function () { var o = {}, saved = store.get('tonix.stream.v1', {}), k; for (k in DEF) o[k] = saved[k] !== undefined ? saved[k] : DEF[k]; return o; })();
 if (!S.vKbps) S.vKbps = 2500;
 function saveS() { store.set('tonix.stream.v1', S); }
@@ -122,6 +122,15 @@ function suggestKey() { return S.res + '-' + (S.fps >= 50 ? 60 : 30); }
 
 function renderLive() {
   if (S.video && S.vKbps < 300) S.vKbps = 2500; // coming back from audio-only
+  document.body.dataset.src = S.src;
+  var urlMode = S.src === 'm3u8';
+  $('#goNote').textContent = urlMode
+    ? 'Viewers play your M3U8 link straight from its source, so there is no limit on audience size and nothing is sent from this device. Go live starts your player and marks you on air. You can close this page afterwards.'
+    : 'Streams run through VDO.Ninja. Pressing Go live asks to use your camera and mic. Anyone with your viewer link can watch.';
+  if (urlMode && !urlP && !live.on) {
+    $('#prevBtn').textContent = 'Test link'; $('#prevBtn').classList.add('pri');
+    $('#prevMsg').textContent = 'Paste your M3U8 link, then press Test link';
+  }
   // controls reflect state
   $$('[data-k]').forEach(function (el) {
     var k = el.dataset.k, v = S[k];
@@ -181,7 +190,9 @@ function setKey(k, raw) {
   var t = TYPES[k], v = raw;
   if (t === 'n') v = Number(raw); else if (t === 'b') v = raw === true || raw === 'true'; else v = String(raw);
   if (t === 'n' && isNaN(v)) return;
-  S[k] = v; saveS(); renderLive(); renderShare();
+  S[k] = v; saveS();
+  if (k === 'src' || k === 'm3u8' || k === 'aud') { if (urlP) stopUrlPreview(); if (k === 'src') stopPreview(); }
+  renderLive(); renderShare();
   if (live.on && k === 'vKbps') vdoSend({ bitrate: S.vKbps, lock: true });
   if (previewing && (k === 'cam' || k === 'mic' || k === 'res' || k === 'fps' || k === 'video' || k === 'ec' || k === 'ns' || k === 'agc' || k === 'stereo' || k === 'sr')) schedulePreview();
 }
@@ -229,6 +240,7 @@ function lockSettings(on) {
 function paintLive() {
   var sec = Math.floor((Date.now() - live.t0) / 1000), m = Math.floor(sec / 60), h = Math.floor(m / 60);
   $('#liveTime').textContent = (h ? h + ':' + String(m % 60).padStart(2, '0') : String(m).padStart(2, '0')) + ':' + String(sec % 60).padStart(2, '0');
+  if (live.mode === 'url') { $('#liveViews').textContent = '-'; $('#liveState').textContent = urlErr ? 'Link problem' : 'On air'; return; }
   $('#liveViews').textContent = live.views;
   $('#liveState').textContent = live.ready ? 'On air' : (sec > 25 ? 'Waiting' : 'Starting');
   var mic = $('#liveMic'), cam = $('#liveCam');
@@ -256,9 +268,46 @@ function acquireWake() {
   navigator.wakeLock.request('screen').then(function (l) { live.wake = l; }).catch(function () {});
 }
 document.addEventListener('visibilitychange', function () { if (!document.hidden) acquireWake(); });
-window.addEventListener('beforeunload', function (e) { if (live.on) { e.preventDefault(); e.returnValue = ''; } });
+window.addEventListener('beforeunload', function (e) { if (live.on && live.mode !== 'url') { e.preventDefault(); e.returnValue = ''; } });
+
+var urlP = null, urlErr = false;
+function stopUrlPreview() {
+  if (urlP) { urlP.destroy(); urlP = null; }
+  var b = $('#urlFrame'); b.innerHTML = ''; b.hidden = true; urlErr = false;
+  if (!live.on) { $('#vid').classList.remove('on'); $('#prevState').textContent = 'Off'; renderLive(); }
+}
+function startUrlPlayer() {
+  var u = TonixPlayer.okUrl(S.m3u8);
+  if (!u) { previewMsg('Paste a working M3U8 link first. It starts with https and usually ends in .m3u8.', 'err'); return false; }
+  if (urlP) { urlP.destroy(); urlP = null; }
+  urlErr = false; previewMsg('');
+  var box = $('#urlFrame'); box.hidden = false; $('#vid').classList.add('on');
+  urlP = TonixPlayer.mount(box, { src: u, aud: TonixPlayer.okUrl(S.aud), muted: true, onStatus: function (k, t) {
+    urlErr = k === 'err';
+    if (k === 'err') previewMsg(t, 'err'); else if (k === 'ok') previewMsg('');
+  } });
+  $('#urlSound').textContent = 'Sound off'; $('#urlSound').setAttribute('aria-pressed', 'false');
+  return true;
+}
+function goLiveUrl() {
+  if (!TonixPlayer.okUrl(S.m3u8)) { previewMsg('Paste a working M3U8 link first. It starts with https and usually ends in .m3u8.', 'err'); return; }
+  stopPreview(); previewMsg('');
+  if (!startUrlPlayer()) return;
+  live.on = true; live.mode = 'url'; live.frame = null; live.t0 = Date.now(); live.views = 0; live.ready = true;
+  $('#vid').classList.add('on', 'air');
+  $('#vid .tally').innerHTML = '<i class="dot"></i>LIVE';
+  $('#liveCtl').hidden = false;
+  $('#goBtn').textContent = 'End stream';
+  $('#prevState').textContent = 'Live';
+  $$('[data-nav="live"]').forEach(function (a) { a.classList.add('onair'); });
+  lockSettings(true); paintLive();
+  live.tick = setInterval(paintLive, 1000);
+  try { $('#vid').scrollIntoView({ block: 'center', behavior: 'smooth' }); } catch (e) {}
+  toast('You are live. Share your viewer link.');
+}
 
 function goLive() {
+  if (S.src === 'm3u8') { goLiveUrl(); return; }
   if (!room) { toast('Set a room name in Share first'); return; }
   if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) { previewMsg('This browser cannot reach your camera or mic. Try Chrome or Safari over https.', 'err'); return; }
   stopPreview(); previewMsg('');
@@ -287,7 +336,7 @@ function endLive() {
   vdoSend({ close: true });
   clearInterval(live.tick); clearInterval(live.statT);
   var box = $('#liveFrame'); box.innerHTML = ''; box.hidden = true;
-  live.on = false; live.frame = null; live.ready = false;
+  live.on = false; live.frame = null; live.ready = false; live.mode = ''; stopUrlPreview();
   if (live.wake) { try { live.wake.release(); } catch (e) {} live.wake = null; }
   $('#vid').classList.remove('on', 'air');
   $('#vid .tally').innerHTML = '<i class="dot"></i>PREVIEW';
@@ -397,7 +446,17 @@ if (navigator.mediaDevices && navigator.mediaDevices.addEventListener) {
 }
 
 function wirePreview() {
-  $('#prevBtn').addEventListener('click', function () { if (previewing) { stopPreview(); previewMsg(''); } else startPreview(); });
+  $('#urlSound').addEventListener('click', function () {
+    if (!urlP) return; var on = this.getAttribute('aria-pressed') !== 'true'; urlP.setSound(on);
+    this.setAttribute('aria-pressed', on); this.textContent = on ? 'Sound on' : 'Sound off';
+  });
+  $('#prevBtn').addEventListener('click', function () {
+    if (S.src === 'm3u8') {
+      if (urlP) { stopUrlPreview(); previewMsg(''); }
+      else if (startUrlPlayer()) { $('#prevBtn').textContent = 'Stop test'; $('#prevBtn').classList.remove('pri'); $('#prevState').textContent = 'Testing'; }
+      return;
+    }
+    if (previewing) { stopPreview(); previewMsg(''); } else startPreview(); });
   $('#flipBtn').addEventListener('click', function () { facing = facing === 'environment' ? 'user' : 'environment'; S.cam = ''; saveS(); renderLive(); startPreview(); });
   document.addEventListener('visibilitychange', function () { if (document.hidden && previewing) { stopPreview(); previewMsg('Preview stopped because the page was hidden.'); } });
 }
@@ -415,6 +474,12 @@ function randRoom() {
 }
 /* Links carry your quality choices so viewers and OBS ask VDO.Ninja for the same codec and bitrate. */
 function linksFor(room) {
+  if (S.src === 'm3u8') {
+    var su = TonixPlayer.okUrl(S.m3u8), au = TonixPlayer.okUrl(S.aud);
+    if (!su) return { watch: '', guest: '', obs: '', embed: '', url: true };
+    var up = '?src=' + encodeURIComponent(su) + (au ? '&aud=' + encodeURIComponent(au) : '');
+    return { watch: BASE + 'watch.html' + up, guest: '', obs: BASE + 'embed.html' + up, embed: BASE + 'embed.html' + up, url: true };
+  }
   var q = '?room=' + encodeURIComponent(room) + '&codec=' + encodeURIComponent(S.codec) + '&vb=' + S.vKbps + '&ab=' + S.aKbps;
   return {
     watch: BASE + 'watch.html' + q,
@@ -446,6 +511,7 @@ function drawQr(cv, text, size) {
   return true;
 }
 function renderQr(url) {
+  if (!url) { var cv = $('#qrCanvas'), cx = cv.getContext('2d'); cx.fillStyle = '#fff'; cx.fillRect(0, 0, cv.width, cv.height); $('#qrNote').textContent = 'The code appears once there is a viewer link.'; $('#qrSave').disabled = $('#qrShow').disabled = true; return; }
   var ok = drawQr($('#qrCanvas'), url, 264);
   $('#qrNote').textContent = ok ? '' : 'This link is too long for a QR code. Shorten the room name.';
   $('#qrSave').disabled = $('#qrShow').disabled = !ok;
@@ -454,6 +520,11 @@ function renderQr(url) {
 
 function renderShare() {
   var L = linksFor(room);
+  $('#obsNote').textContent = L.url ? 'Add this as a Browser source in OBS or Streamlabs to show the same player. You can also paste your M3U8 link straight into a Media source.' : 'Clean video and audio straight from VDO.Ninja, with no page around it. Paste it into a Browser source.';
+  if (L.url && !L.watch) {
+    ['#lkWatch', '#lkGuest', '#lkObs', '#lkEmbed'].forEach(function (id) { $(id).textContent = 'Add your M3U8 link on the Go live tab first.'; });
+    $('#socials').innerHTML = ''; renderQr(''); renderEmbed(); return;
+  }
   $('#lkWatch').textContent = L.watch; $('#lkGuest').textContent = L.guest; $('#lkObs').textContent = L.obs; $('#lkEmbed').textContent = L.embed;
   renderQr(L.watch);
   var msg = $('#msgIn').value || 'Come watch me live', box = $('#socials'); box.innerHTML = '';
@@ -497,7 +568,10 @@ function esc(s) { return String(s).replace(/&/g, '&amp;').replace(/"/g, '&quot;'
 function ratioNums(r) { var p = r.split(':'); return [Number(p[0]), Number(p[1])]; }
 
 function embedHtml() {
-  var q = new URLSearchParams({ room: room, accent: P.accent.replace('#', ''), chat: P.chat ? 1 : 0, viewers: P.viewers ? 1 : 0, badge: P.badge ? 1 : 0, autoplay: P.autoplay ? 1 : 0, title: P.title, codec: S.codec, vb: S.vKbps, ab: S.aKbps });
+  var base = { accent: P.accent.replace('#', ''), chat: P.chat ? 1 : 0, viewers: P.viewers ? 1 : 0, badge: P.badge ? 1 : 0, autoplay: P.autoplay ? 1 : 0, title: P.title };
+  if (S.src === 'm3u8') { base.src = TonixPlayer.okUrl(S.m3u8); var au = TonixPlayer.okUrl(S.aud); if (au) base.aud = au; }
+  else { base.room = room; base.codec = S.codec; base.vb = S.vKbps; base.ab = S.aKbps; }
+  var q = new URLSearchParams(base);
   var src = BASE + 'embed.html?' + q.toString(), rn = ratioNums(P.ratio);
   var attrs = 'title="' + esc(P.title) + '" allow="autoplay; fullscreen; picture-in-picture" allowfullscreen loading="lazy"';
   if (P.responsive) {

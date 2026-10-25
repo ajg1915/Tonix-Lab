@@ -94,7 +94,7 @@ h2.ph-t{margin:0;font:600 11px var(--f-body);letter-spacing:.16em;text-transform
 
 .field{display:grid;gap:6px;margin-top:14px}
 .field>label,.lbl{font:600 11px var(--f-body);letter-spacing:.12em;text-transform:uppercase;color:var(--mute)}
-select,input[type="text"],input[type="search"],textarea{width:100%;min-height:var(--tap);padding:8px 12px;border:1px solid var(--line-hi);border-radius:4px;background:var(--field-bg);color:var(--text)}
+select,input[type="text"],input[type="url"],input[type="search"],textarea{width:100%;min-height:var(--tap);padding:8px 12px;border:1px solid var(--line-hi);border-radius:4px;background:var(--field-bg);color:var(--text)}
 textarea{min-height:92px;resize:vertical;font:12.5px/1.5 var(--f-mono)}
 .chk{display:flex;align-items:flex-start;gap:12px;min-height:var(--tap);padding:8px 0;cursor:pointer}
 .chk input{width:22px;height:22px;margin:1px 0 0;accent-color:var(--amber);flex:none}
@@ -237,3 +237,11 @@ table.tbl td:not(:first-child){font-family:var(--f-mono);white-space:nowrap}
 .qrover canvas{width:min(86vw,70vh);height:min(86vw,70vh)}
 .qrover p{margin:0;color:#111;font:600 18px var(--f-body)}
 .qrover .btn{position:absolute;top:12px;right:12px}
+
+/* Source switch: Camera and M3U8 link modes */
+body[data-src="m3u8"] .camonly{display:none !important}
+body:not([data-src="m3u8"]) .urlonly{display:none}
+.urlonly{display:grid;gap:0}
+.field input[type=url]{width:100%}
+button.urlonly{display:inline-flex}
+body:not([data-src="m3u8"]) button.urlonly{display:none}

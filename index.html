@@ -111,35 +111,51 @@
         <!-- left: preview -->
         <div class="stack">
           <div class="panel">
+            <div class="ph"><h2 class="ph-t">Stream source</h2></div>
+            <div class="seg" role="group" aria-label="Stream source">
+              <button data-k="src" data-v="cam">Camera &amp; mic</button><button data-k="src" data-v="m3u8">M3U8 link</button>
+            </div>
+            <div class="urlonly">
+              <div class="field"><label for="m3u8In">M3U8 link</label>
+                <input type="url" id="m3u8In" data-k="m3u8" inputmode="url" autocomplete="off" autocapitalize="off" spellcheck="false" placeholder="https://example.com/live/stream.m3u8"></div>
+              <div class="field"><label for="audIn">Second audio link <small>(optional)</small></label>
+                <input type="url" id="audIn" data-k="aud" inputmode="url" autocomplete="off" autocapitalize="off" spellcheck="false" placeholder="https://example.com/radio/stream.m3u8 or .mp3 / .aac">
+                <p class="note">Plays alongside your video, and the video's own sound is turned off. The two are not locked together, so a little drift is normal.</p></div>
+              <p class="note" id="urlNote">Viewers play this link straight from its source, with no camera needed. The link has to be https and its host has to allow other websites to play it.</p>
+            </div>
+          </div>
+          <div class="panel">
             <div class="ph"><h2 class="ph-t">Preview</h2><span class="pill" id="prevState">Off</span></div>
             <div class="vid" id="vid">
               <video id="prev" muted playsinline autoplay></video>
               <span class="tally"><i class="dot"></i>PREVIEW</span>
               <div class="ph-msg" id="prevMsg">Start the preview to check your camera and mic</div>
               <div id="liveFrame" class="liveframe" hidden></div>
+              <div id="urlFrame" class="liveframe" hidden></div>
             </div>
-            <div class="meter" aria-hidden="true"><i id="lvl"></i></div>
-            <div class="actual" id="actual" role="status" aria-live="polite"></div>
+            <div class="meter camonly" aria-hidden="true"><i id="lvl"></i></div>
+            <div class="actual camonly" id="actual" role="status" aria-live="polite"></div>
             <div style="display:flex;gap:10px;margin-top:12px;flex-wrap:wrap">
               <button class="btn pri" id="prevBtn" style="flex:1 1 160px">Start preview</button>
-              <button class="btn" id="flipBtn" hidden style="flex:1 1 120px">Flip camera</button>
+              <button class="btn camonly" id="flipBtn" hidden style="flex:1 1 120px">Flip camera</button>
+              <button class="btn urlonly" id="urlSound" type="button" aria-pressed="false" style="flex:1 1 120px">Sound off</button>
             </div>
             <p class="note" id="prevNote" role="status"></p>
             <div id="liveCtl" hidden>
               <div class="readout" style="margin-top:0"><div><small>On air</small><b id="liveTime">00:00</b></div><div><small>Viewers</small><b id="liveViews">0</b></div><div><small>Status</small><b id="liveState">Starting</b></div></div>
               <div style="display:flex;gap:10px;margin-top:12px;flex-wrap:wrap">
-                <button class="btn" id="liveMic" aria-pressed="false" style="flex:1 1 140px">Mute mic</button>
-                <button class="btn" id="liveCam" aria-pressed="false" style="flex:1 1 140px">Hide camera</button>
+                <button class="btn camonly" id="liveMic" aria-pressed="false" style="flex:1 1 140px">Mute mic</button>
+                <button class="btn camonly" id="liveCam" aria-pressed="false" style="flex:1 1 140px">Hide camera</button>
               </div>
-              <p class="note">Bitrate changes apply right away. Size, frame rate and sound settings apply the next time you go live.</p>
-              <p class="note"><a href="#" id="liveOpen" target="_blank" rel="noopener noreferrer">Having trouble? Open the stream page in a new tab.</a> Keep this page open while you are live.</p>
+              <p class="note camonly">Bitrate changes apply right away. Size, frame rate and sound settings apply the next time you go live.</p>
+              <p class="note camonly"><a href="#" id="liveOpen" target="_blank" rel="noopener noreferrer">Having trouble? Open the stream page in a new tab.</a> Keep this page open while you are live.</p>
             </div>
-            <div class="field"><label for="camSel">Camera</label><select id="camSel" data-k="cam"><option value="">System default</option></select></div>
-            <div class="field"><label for="micSel">Microphone</label><select id="micSel" data-k="mic"><option value="">System default</option></select></div>
-            <p class="note" id="devNote">Start the preview once so the browser can list your devices.</p>
+            <div class="field camonly"><label for="camSel">Camera</label><select id="camSel" data-k="cam"><option value="">System default</option></select></div>
+            <div class="field camonly"><label for="micSel">Microphone</label><select id="micSel" data-k="mic"><option value="">System default</option></select></div>
+            <p class="note camonly" id="devNote">Start the preview once so the browser can list your devices.</p>
           </div>
 
-          <div class="panel">
+          <div class="panel camonly">
             <div class="ph"><h2 class="ph-t">What this stream needs</h2></div>
             <div class="readout">
               <div><small>Total</small><b id="rTotal">-</b></div>
@@ -152,13 +168,13 @@
 
         <!-- right: settings -->
         <div class="stack">
-          <div class="panel">
+          <div class="panel camonly">
             <div class="ph"><h2 class="ph-t">Quick presets</h2></div>
             <div class="chips" id="presets" role="group" aria-label="Quality presets"></div>
             <p class="note" id="presetNote"></p>
           </div>
 
-          <div class="panel">
+          <div class="panel camonly">
             <div class="ph"><h2 class="ph-t">Video</h2></div>
             <label class="chk"><input type="checkbox" data-k="video"><span>Send video<small>Turn off for an audio-only show.</small></span></label>
             <div id="videoBox">
@@ -187,7 +203,7 @@
             </div>
           </div>
 
-          <div class="panel">
+          <div class="panel camonly">
             <div class="ph"><h2 class="ph-t">Audio</h2></div>
             <div class="field" style="margin-top:0"><span class="lbl">Audio bitrate</span>
               <div class="rng"><label class="sr" for="aKbps">Audio bitrate</label><span></span><output id="aOut" for="aKbps"></output>
@@ -246,8 +262,8 @@
         </div>
         <div class="cols two">
           <div class="link"><b>Viewer link</b><code id="lkWatch"></code><p>Send this to your audience.</p><button class="btn" data-copy="lkWatch">Copy link</button></div>
-          <div class="link"><b>Camera link</b><code id="lkGuest"></code><p>Open this on another phone or computer to send its camera and mic to this room. Use it instead of Go live, not at the same time.</p><button class="btn" data-copy="lkGuest">Copy link</button></div>
-          <div class="link"><b>OBS / Streamlabs source</b><code id="lkObs"></code><p>Clean video and audio straight from VDO.Ninja, with no page around it. Paste it into a Browser source.</p><button class="btn" data-copy="lkObs">Copy link</button></div>
+          <div class="link camonly" id="cardGuest"><b>Camera link</b><code id="lkGuest"></code><p>Open this on another phone or computer to send its camera and mic to this room. Use it instead of Go live, not at the same time.</p><button class="btn" data-copy="lkGuest">Copy link</button></div>
+          <div class="link"><b>OBS / Streamlabs source</b><code id="lkObs"></code><p id="obsNote">Clean video and audio straight from VDO.Ninja, with no page around it. Paste it into a Browser source.</p><button class="btn" data-copy="lkObs">Copy link</button></div>
           <div class="link"><b>Embed link</b><code id="lkEmbed"></code><p>The bare player. Use the Player &amp; embed tab for the code.</p><button class="btn" data-copy="lkEmbed">Copy link</button></div>
         </div>
         <div class="panel">
@@ -388,7 +404,7 @@
       <details id="h-actual"><summary>Preview shows a different size than I picked</summary><div class="body"><p>Browsers treat resolution and frame rate as a request, not an order. The line under the preview shows what you actually got. Many phone cameras cap at 30 fps in low light or on the front camera.</p></div></details>
     </section>
 
-    <p class="foot">Tonix Lab <span id="build">v22</span> · settings stay on this device · Streaming by self-hosted <a href="https://vdo.ninja" target="_blank" rel="noopener noreferrer">VDO.Ninja</a></p>
+    <p class="foot">Tonix Lab <span id="build">v23</span> · settings stay on this device · Streaming by self-hosted <a href="https://vdo.ninja" target="_blank" rel="noopener noreferrer">VDO.Ninja</a></p>
   </main>
 
   <nav class="tabs" aria-label="Main">
@@ -404,6 +420,7 @@
 <div id="qrOver" class="qrover" hidden><button class="btn" id="qrClose" type="button">Close</button><canvas id="qrBig" width="600" height="600" aria-label="QR code for the viewer link"></canvas><p>Scan to watch</p></div>
 <script src="qr.js"></script>
 <script src="vdo.js"></script>
+<script src="player.js"></script>
 <script src="app.js"></script>
 <script>if('serviceWorker' in navigator&&/^https?:$/.test(location.protocol)){window.addEventListener('load',function(){navigator.serviceWorker.register('sw.js').catch(function(){});});}</script>
 </body></html>

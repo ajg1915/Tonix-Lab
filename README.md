@@ -18,3 +18,9 @@ Open the live page, then install it: Android Chrome shows **Install app**; on iP
 | `index.html`, `app.css`, `app.js` | The hub: Home, Go live, Share & embed, How to |
 | `studio.html` | The Studio audio engine and recorder |
 | `sw.js`, `manifest.webmanifest` | Offline support and install |
+
+## Third-party code
+
+- `vdo/`: self-hosted copy of VDO.Ninja (AGPL-3.0). See `vdo/README-TONIX.md`.
+- `qr.js`: qrcode-generator by Kazuhiko Arase (MIT).
+- `hls.light.min.js`: hls.js (Apache-2.0). Licence in `HLSJS-LICENSE.txt`.
