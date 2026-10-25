@@ -233,6 +233,17 @@
             <div style="display:flex;gap:8px"><input type="text" id="roomIn" maxlength="32" autocomplete="off" autocapitalize="off" spellcheck="false" placeholder="my-show"><button class="btn" id="roomNew" type="button">Random</button></div>
             <p class="note">Letters, numbers and dashes. Anyone with the link can watch, so pick something hard to guess for private streams.</p></div>
         </div>
+        <div class="panel qrp">
+          <div class="ph"><h2 class="ph-t">Scan to watch</h2></div>
+          <div class="qrwrap">
+            <canvas id="qrCanvas" width="264" height="264" role="img" aria-label="QR code for the viewer link"></canvas>
+            <div class="qrtxt">
+              <p>On another device? Point its camera at this code to open the viewer page. It always matches your current room.</p>
+              <div class="qrbtns"><button class="btn" id="qrSave" type="button">Save image</button><button class="btn" id="qrShow" type="button">Full screen</button></div>
+              <p class="note" id="qrNote"></p>
+            </div>
+          </div>
+        </div>
         <div class="cols two">
           <div class="link"><b>Viewer link</b><code id="lkWatch"></code><p>Send this to your audience.</p><button class="btn" data-copy="lkWatch">Copy link</button></div>
           <div class="link"><b>Camera link</b><code id="lkGuest"></code><p>Open this on another phone or computer to send its camera and mic to this room. Use it instead of Go live, not at the same time.</p><button class="btn" data-copy="lkGuest">Copy link</button></div>
@@ -390,6 +401,8 @@
 </div>
 
 <div class="toast" id="toast" role="status" aria-live="polite"></div>
+<div id="qrOver" class="qrover" hidden><button class="btn" id="qrClose" type="button">Close</button><canvas id="qrBig" width="600" height="600" aria-label="QR code for the viewer link"></canvas><p>Scan to watch</p></div>
+<script src="qr.js"></script>
 <script src="vdo.js"></script>
 <script src="app.js"></script>
 <script>if('serviceWorker' in navigator&&/^https?:$/.test(location.protocol)){window.addEventListener('load',function(){navigator.serviceWorker.register('sw.js').catch(function(){});});}</script>

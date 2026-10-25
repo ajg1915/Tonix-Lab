@@ -225,3 +225,15 @@ table.tbl td:not(:first-child){font-family:var(--f-mono);white-space:nowrap}
 .tabs a.onair::after,.side nav a.onair::after{content:"";width:8px;height:8px;border-radius:50%;background:var(--rec);display:inline-block;margin-left:6px}
 .tabs a.onair{position:relative}.tabs a.onair::after{position:absolute;top:10px;right:calc(50% - 20px);margin:0}
 .locked{opacity:.5;pointer-events:none}
+
+/* QR code */
+.qrwrap{display:flex;gap:18px;align-items:center;flex-wrap:wrap}
+.qrwrap canvas{width:176px;height:176px;border-radius:6px;background:#fff;flex:none}
+.qrtxt{flex:1 1 220px;display:grid;gap:10px}
+.qrtxt p{margin:0;color:var(--mute);font-size:13px}
+.qrbtns{display:flex;gap:8px;flex-wrap:wrap}
+.qrover{position:fixed;inset:0;z-index:100;background:#fff;display:grid;place-items:center;align-content:center;gap:12px;padding:16px}
+.qrover[hidden]{display:none}
+.qrover canvas{width:min(86vw,70vh);height:min(86vw,70vh)}
+.qrover p{margin:0;color:#111;font:600 18px var(--f-body)}
+.qrover .btn{position:absolute;top:12px;right:12px}

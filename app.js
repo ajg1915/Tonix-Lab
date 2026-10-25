@@ -435,9 +435,27 @@ var SOCIAL = [
   { n: 'Email', u: function (l, m) { return 'mailto:?subject=' + encodeURIComponent(m) + '&body=' + encodeURIComponent(m + '\n' + l); } }
 ];
 
+
+/* QR code for the viewer link. Drawn on this device (no outside service), always dark on white so any phone camera can read it. */
+function drawQr(cv, text, size) {
+  var q; try { q = qrcode(0, 'M'); q.addData(text); q.make(); } catch (e) { return false; }
+  var n = q.getModuleCount(), quiet = 4, cell = Math.floor(size / (n + quiet * 2));
+  var px = cell * (n + quiet * 2); cv.width = px; cv.height = px;
+  var c = cv.getContext('2d'); c.fillStyle = '#fff'; c.fillRect(0, 0, px, px); c.fillStyle = '#000';
+  for (var r = 0; r < n; r++) for (var k = 0; k < n; k++) if (q.isDark(r, k)) c.fillRect((k + quiet) * cell, (r + quiet) * cell, cell, cell);
+  return true;
+}
+function renderQr(url) {
+  var ok = drawQr($('#qrCanvas'), url, 264);
+  $('#qrNote').textContent = ok ? '' : 'This link is too long for a QR code. Shorten the room name.';
+  $('#qrSave').disabled = $('#qrShow').disabled = !ok;
+  if (ok && !$('#qrOver').hidden) drawQr($('#qrBig'), url, 600);
+}
+
 function renderShare() {
   var L = linksFor(room);
   $('#lkWatch').textContent = L.watch; $('#lkGuest').textContent = L.guest; $('#lkObs').textContent = L.obs; $('#lkEmbed').textContent = L.embed;
+  renderQr(L.watch);
   var msg = $('#msgIn').value || 'Come watch me live', box = $('#socials'); box.innerHTML = '';
   if (navigator.share) {
     var nb = document.createElement('button'); nb.type = 'button'; nb.className = 'btn pri'; nb.textContent = 'Share...';
@@ -563,6 +581,15 @@ document.addEventListener('click', function (e) { var a = e.target.closest && e.
 
 /* ---------- boot ---------- */
 buildPresets(); wireLive(); wirePreview(); wireShare(); wirePlayer(); wireHelp();
+
+$('#qrSave').addEventListener('click', function () {
+  var a = document.createElement('a'); a.download = 'watch-' + room + '.png'; a.href = $('#qrCanvas').toDataURL('image/png'); document.body.appendChild(a); a.click(); a.remove();
+});
+$('#qrShow').addEventListener('click', function () { drawQr($('#qrBig'), linksFor(room).watch, 600); $('#qrOver').hidden = false; $('#qrClose').focus(); });
+$('#qrClose').addEventListener('click', function () { $('#qrOver').hidden = true; $('#qrShow').focus(); });
+$('#qrOver').addEventListener('click', function (e) { if (e.target === this) this.hidden = true; });
+document.addEventListener('keydown', function (e) { if (e.key === 'Escape' && !$('#qrOver').hidden) $('#qrOver').hidden = true; });
+
 renderLive(); renderShare(); renderPlayer(); stopPreview(); previewMsg('');
 route();
 })();
