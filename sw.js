@@ -1,4 +1,4 @@
-const V = 'tonix-v20';
+const V = 'tonix-v21';
 const CORE = ['./', 'index.html', 'studio.html', 'app.css', 'app.js', 'vdo.js', 'qr.js', 'watch.html', 'watch.js', 'embed.html', 'manifest.webmanifest', 'icon-192.png', 'icon-512.png', 'apple-touch-icon.png'];
 self.addEventListener('install', e => {
   e.waitUntil(caches.open(V).then(c => c.addAll(CORE)).then(() => self.skipWaiting()));

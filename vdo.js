@@ -5,11 +5,12 @@
      push side:  push, webcam, autostart, cleanoutput, width, height, fps, ovb (outbound bitrate),
                  mvb (max bitrate), stereo, aec / denoise / autogain (0 or 1), videodevice, audiodevice
      view side:  view, cleanoutput / cleanish, codec, videobitrate (vb), audiobitrate
-   Change VDO.Ninja's address here to use a self-hosted copy. */
+   The VDO.Ninja files live in the vdo/ folder of this site (self-hosted, AGPL-3.0, see vdo/README-TONIX.md).
+   To use the public service instead, set HOST to 'https://vdo.ninja/'. */
 (function (root) {
 'use strict';
 
-var HOST = 'https://vdo.ninja/';
+var HOST = (function () { try { return new URL('vdo/', document.baseURI).href; } catch (e) { return 'https://vdo.ninja/'; } })();
 var RES = { '360': [640, 360], '480': [854, 480], '720': [1280, 720], '1080': [1920, 1080] };
 
 function qs(pairs) {
@@ -29,7 +30,8 @@ function pushUrl(room, S, opts) {
   if (S.video) {
     var wh = RES[S.res] || RES['720'];
     p.push(['webcam']);
-    p.push(['width', wh[0]], ['height', wh[1]], ['fps', num(S.fps, 30)]);
+    /* maxframerate asks for "up to this many"; plain fps demands exactly that many and fails on cameras that cannot. */
+    p.push(['width', wh[0]], ['height', wh[1]], ['maxframerate', num(S.fps, 30)]);
     if (opts.camLabel) p.push(['videodevice', opts.camLabel]);
   } else {
     p.push(['videodevice', '0']);
