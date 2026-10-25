@@ -18,7 +18,9 @@ function qs(pairs) {
   }).join('&');
 }
 function num(v, d) { v = Number(v); return isFinite(v) && v > 0 ? Math.round(v) : d; }
-function id(v) { return String(v || '').toLowerCase().replace(/[^a-z0-9_-]/g, '').slice(0, 40); }
+/* Letters and numbers only. VDO.Ninja rewrites other characters in stream IDs, and the camera side and the
+   viewer side must end up with exactly the same ID, so we never send anything it would rewrite. */
+function id(v) { return String(v || '').toLowerCase().replace(/[^a-z0-9]/g, '').slice(0, 40); }
 
 /* The page that publishes your camera and mic. S = the Go live settings. */
 function pushUrl(room, S, opts) {
@@ -57,5 +59,8 @@ function viewUrl(room, S, opts) {
   return HOST + '?' + qs(p);
 }
 
-root.TonixVdo = { HOST: HOST, pushUrl: pushUrl, viewUrl: viewUrl, cleanRoom: id };
+/* Plain link with no extra options: the first thing to try when a stream will not show. */
+function plainView(room) { return HOST + '?view=' + encodeURIComponent(id(room)); }
+
+root.TonixVdo = { plainView: plainView, HOST: HOST, pushUrl: pushUrl, viewUrl: viewUrl, cleanRoom: id };
 })(window);

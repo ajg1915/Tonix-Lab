@@ -25,5 +25,6 @@ if (!room) {
   f.setAttribute('allowfullscreen', '');
   f.referrerPolicy = 'strict-origin-when-cross-origin';
   box.appendChild(f);
+  var pl = document.getElementById('plain'); if (pl) pl.href = TonixVdo.plainView(room);
 }
 })();
