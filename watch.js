@@ -20,7 +20,7 @@ if (!room) {
 } else {
   var f = document.createElement('iframe');
   f.title = title || 'Live stream';
-  f.src = TonixVdo.viewUrl(room, { codec: codec, vKbps: vb, aKbps: ab, video: true });
+  f.src = TonixVdo.viewUrl(room, { codec: codec, vKbps: vb, aKbps: ab, video: true }, { clean: 'ish' });
   f.allow = 'autoplay; fullscreen; picture-in-picture';
   f.setAttribute('allowfullscreen', '');
   f.referrerPolicy = 'strict-origin-when-cross-origin';

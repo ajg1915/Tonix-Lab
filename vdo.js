@@ -4,7 +4,7 @@
    Parameter meanings come from https://docs.vdo.ninja:
      push side:  push, webcam, autostart, cleanoutput, width, height, fps, ovb (outbound bitrate),
                  mvb (max bitrate), stereo, aec / denoise / autogain (0 or 1), videodevice, audiodevice
-     view side:  view, cleanoutput, codec, videobitrate (vb), audiobitrate
+     view side:  view, cleanoutput / cleanish, codec, videobitrate (vb), audiobitrate
    Change VDO.Ninja's address here to use a self-hosted copy. */
 (function (root) {
 'use strict';
@@ -46,7 +46,10 @@ function pushUrl(room, S, opts) {
 function viewUrl(room, S, opts) {
   opts = opts || {};
   var p = [['view', id(room)]];
-  if (opts.clean !== false) p.push(['cleanoutput']);
+  /* Web pages use cleanish: it keeps VDO.Ninja's tap-to-play button, which browsers need before they allow sound.
+     OBS and Streamlabs have no such rule, so their link keeps the fully clean cleanoutput. */
+  if (opts.clean === 'ish') p.push(['cleanish']);
+  else if (opts.clean !== false) p.push(['cleanoutput']);
   var codec = String(S.codec || '').toLowerCase();
   if (['h264', 'vp8', 'vp9', 'av1'].indexOf(codec) >= 0) p.push(['codec', codec]);
   if (S.video !== false) p.push(['videobitrate', num(S.vKbps, 2500)]);
