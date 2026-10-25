@@ -1,4 +1,4 @@
-const V = 'tonix-v21';
+const V = 'tonix-v22';
 const CORE = ['./', 'index.html', 'studio.html', 'app.css', 'app.js', 'vdo.js', 'qr.js', 'watch.html', 'watch.js', 'embed.html', 'manifest.webmanifest', 'icon-192.png', 'icon-512.png', 'apple-touch-icon.png'];
 self.addEventListener('install', e => {
   e.waitUntil(caches.open(V).then(c => c.addAll(CORE)).then(() => self.skipWaiting()));
@@ -22,11 +22,15 @@ self.addEventListener('fetch', e => {
   if (u.origin !== location.origin) return;
   if (r.mode === 'navigate') {
     // Network first. Each page is cached under its own URL so studio.html and the hub never overwrite each other.
-    e.respondWith(fetch(r).then(res => {
+    e.respondWith(fetch(r, { cache: 'no-cache' }).then(res => {
       if (res.ok) { const copy = res.clone(); caches.open(V).then(c => c.put(r, copy)); }
       return res;
     }).catch(() => caches.match(r, { ignoreSearch: true }).then(hit => hit || caches.match('index.html'))));
     return;
   }
-  e.respondWith(caches.match(r).then(hit => hit || fetch(r)));
+  // Network first for everything, so a new version reaches phones on the next open. The cache is only the offline fallback.
+  e.respondWith(fetch(r, { cache: 'no-cache' }).then(res => {
+    if (res.ok && !u.pathname.includes('/vdo/')) { const copy = res.clone(); caches.open(V).then(c => c.put(r, copy)); }
+    return res;
+  }).catch(() => caches.match(r)));
 });
