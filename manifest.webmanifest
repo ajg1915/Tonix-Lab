@@ -1,7 +1,7 @@
 {
   "name": "Tonix Lab",
   "short_name": "Tonix Lab",
-  "description": "Vocal channel strip and recorder with studio presets.",
+  "description": "Studio and live streaming hub: pro vocal audio, full bitrate control, shareable links and embeddable players.",
   "start_url": "./",
   "scope": "./",
   "display": "standalone",
@@ -10,7 +10,8 @@
   "theme_color": "#0d0e11",
   "categories": [
     "music",
-    "productivity"
+    "productivity",
+    "social"
   ],
   "icons": [
     {

@@ -1,1746 +1,384 @@
 <!doctype html>
-<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<html lang="en" data-theme="dark"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <meta name="theme-color" content="#0d0e11">
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="apple-mobile-web-app-title" content="Tonix Lab">
+<meta name="description" content="Tonix Lab: a studio and live streaming hub with pro audio, full bitrate control, shareable links and embeddable players.">
 <link rel="manifest" href="manifest.webmanifest">
 <link rel="icon" type="image/png" href="icon-192.png">
 <link rel="apple-touch-icon" href="apple-touch-icon.png">
 <title>Tonix Lab</title>
-<meta name="claude:viewport-fit-sides" content="cover">
+<script>try{document.documentElement.dataset.theme=localStorage.getItem('psb.theme.v1')||'dark'}catch(e){}</script>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Big+Shoulders+Display:wght@700;800&family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans:wght@400;500;600&display=swap">
-<style>
-/* Layout concept: a single vocal channel strip laid out like a rack.
-   Spectrum + meters on the left, source and recorder on the right,
-   then presets, the module rack, and the takes shelf.
-   Deliberately one dark look: a console is never viewed in daylight mode. */
-:root{
-  --ink:#0d0e11;
-  --panel:#1a1d23;
-  --panel-2:#22262e;
-  --line:#2b303a;
-  --line-hi:#3b4250;
-  --text:#ebe7de;
-  --mute:#9097a4;
-  --faint:#646a77;
-  --amber:#ffb340;
-  --amber-soft:rgba(255,179,64,.15);
-  --rec:#ff4a3a;
-  --go:#3fcf8e;
-  --panel-top:#1b1e25;--panel-bot:#16181e;--field-bg:var(--field-bg);--hover:var(--hover);--hover-bg:var(--hover-bg);
-  --led-off:#2b2f37;--pad-top:#242831;--pad-bot:#1a1d24;--take-bg:var(--ink);--warn:#ffd08a;--err:#ff9d92;--sw-eq:#e9ecf3;
-  --f-display:"Big Shoulders Display","Arial Narrow",Impact,sans-serif;
-  --f-body:"IBM Plex Sans",system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;
-  --f-mono:"IBM Plex Mono",ui-monospace,Menlo,Consolas,monospace;
-  color-scheme:dark;
-}
-html[data-theme="light"]{--ink:#f3f1ec;--panel:#ffffff;--panel-2:#f4f2ee;--line:#dcd7cd;--line-hi:#c4beb1;--text:#1d1f24;--mute:#5b616d;--faint:#7d838f;--amber:#b86a00;--amber-soft:rgba(184,106,0,.12);--rec:#d6382a;--go:#17965f;
-  --panel-top:#ffffff;--panel-bot:#fbfaf7;--field-bg:#ffffff;--hover:#9a9385;--hover-bg:#ece9e2;
-  --led-off:#cfc9bd;--pad-top:#ffffff;--pad-bot:#f7f5f0;--take-bg:#fbfaf7;--warn:#8a5a00;--err:#b3261e;--sw-eq:#1d1f24;color-scheme:light;}
-@media (prefers-color-scheme: light){html[data-theme="system"]{--ink:#f3f1ec;--panel:#ffffff;--panel-2:#f4f2ee;--line:#dcd7cd;--line-hi:#c4beb1;--text:#1d1f24;--mute:#5b616d;--faint:#7d838f;--amber:#b86a00;--amber-soft:rgba(184,106,0,.12);--rec:#d6382a;--go:#17965f;
-  --panel-top:#ffffff;--panel-bot:#fbfaf7;--field-bg:#ffffff;--hover:#9a9385;--hover-bg:#ece9e2;
-  --led-off:#cfc9bd;--pad-top:#ffffff;--pad-bot:#f7f5f0;--take-bg:#fbfaf7;--warn:#8a5a00;--err:#b3261e;--sw-eq:#1d1f24;color-scheme:light;}}
-html[data-theme="system"]{--amber:#5aa9ff;--amber-soft:rgba(90,169,255,.15);}
-@media (prefers-color-scheme: light){html[data-theme="system"]{--amber:#1f6fd6;--amber-soft:rgba(31,111,214,.12);}}
-*{box-sizing:border-box}
-html,body{margin:0;background:var(--ink);color:var(--text)}
-html{-webkit-text-size-adjust:100%;text-size-adjust:100%;overscroll-behavior-y:contain}
-body{overscroll-behavior-y:contain;-webkit-tap-highlight-color:transparent}
-body{font:14px/1.45 var(--f-body);-webkit-font-smoothing:antialiased}
-button,select,input{font:inherit;color:inherit}
-button,.btn,.pad,.seg button{cursor:pointer;touch-action:manipulation;-webkit-user-select:none;user-select:none;-webkit-touch-callout:none}
-button:disabled{cursor:not-allowed;opacity:.45}
-:focus-visible{outline:2px solid var(--amber);outline-offset:2px}
-[hidden]{display:none!important}
-.sr{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap}
-
-.shell{max-width:1280px;margin:0 auto;display:grid;gap:16px;
-  padding-block:18px 64px;
-  padding-left:max(16px,env(safe-area-inset-left,0px));
-  padding-right:max(16px,env(safe-area-inset-right,0px))}
-
-/* header */
-.top{display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:12px 24px;padding-bottom:14px;border-bottom:1px solid var(--line)}
-.brand{display:flex;align-items:baseline;gap:14px;flex-wrap:wrap;min-width:0}
-.brand h1{margin:0;font:800 36px/1 var(--f-display);letter-spacing:.07em;text-transform:uppercase}
-.brand small{font:500 11px var(--f-mono);letter-spacing:.14em;color:var(--mute);text-transform:uppercase}
-.top-r{display:flex;align-items:center;gap:10px;flex-wrap:wrap}
-.status{display:flex;align-items:center;gap:8px;font:400 12px var(--f-mono);color:var(--mute);min-width:0}
-.led{display:inline-block;width:9px;height:9px;border-radius:50%;background:var(--led-off);box-shadow:inset 0 0 0 1px rgba(0,0,0,.45);flex:none}
-.led.on{background:var(--go);box-shadow:0 0 8px 1px rgba(63,207,142,.55)}
-.led.amber.on{background:var(--amber);box-shadow:0 0 8px 1px rgba(255,179,64,.55)}
-.led.err{background:var(--rec);box-shadow:0 0 8px 1px rgba(255,74,58,.55)}
-
-.btn{display:inline-flex;align-items:center;justify-content:center;gap:8px;height:36px;padding:0 14px;border:1px solid var(--line-hi);background:var(--panel-2);border-radius:3px;font:600 12px var(--f-body);letter-spacing:.08em;text-transform:uppercase;white-space:nowrap}
-.btn:hover:not(:disabled){border-color:var(--hover);background:var(--hover-bg)}
-.btn.sm{height:30px;padding:0 10px;font-size:11px}
-.btn[aria-pressed="true"]{background:var(--amber-soft);border-color:var(--amber);color:var(--amber)}
-.btn.power[aria-pressed="true"]{background:rgba(63,207,142,.13);border-color:var(--go);color:var(--go)}
-.btn.ghost{background:transparent}
-.file-btn{position:relative}
-.file-btn:focus-within{outline:2px solid var(--amber);outline-offset:2px}
-
-/* panels */
-.panel{background:linear-gradient(180deg,var(--panel-top),var(--panel-bot));border:1px solid var(--line);border-radius:4px;padding:14px 16px 16px;min-width:0}
-.ph{display:flex;align-items:center;justify-content:space-between;gap:10px;margin:0 0 12px;min-height:20px}
-.ph h2{margin:0;font:600 11px var(--f-body);letter-spacing:.16em;text-transform:uppercase;color:var(--mute)}
-.rstate{font:400 11px var(--f-mono);color:var(--faint);text-align:right}
-.legend{display:flex;align-items:center;gap:6px;font:400 11px var(--f-mono);color:var(--faint)}
-.sw{display:inline-block;width:14px;height:3px;border-radius:2px}
-.sw-spec{background:var(--amber)}
-.sw-eq{background:var(--sw-eq);margin-left:8px}
-
-.deck{display:grid;gap:16px;grid-template-columns:minmax(0,1.7fr) minmax(300px,1fr)}
-.side{display:grid;gap:16px;align-content:start;min-width:0}
-@media (max-width:960px){.deck{grid-template-columns:minmax(0,1fr)}}
-
-/* display */
-.scope-wrap{border:1px solid #07080a;background:#08090b;border-radius:2px;box-shadow:inset 0 0 0 1px #1e222a}
-canvas.scope{display:block;width:100%;height:240px}
-.meters{display:grid;gap:9px;margin-top:14px}
-.m-row{display:grid;grid-template-columns:34px minmax(0,1fr) 66px;align-items:center;gap:10px;font:500 11px var(--f-mono);color:var(--mute)}
-.m-row canvas{display:block;width:100%;height:12px}
-.m-val{text-align:right;font-variant-numeric:tabular-nums;color:var(--text)}
-.m-val.hot{color:var(--rec)}
-
-/* source + recorder */
-.seg{display:grid;grid-template-columns:1fr 1fr;border:1px solid var(--line-hi);border-radius:3px;overflow:hidden}
-.seg button{border:0;background:transparent;height:34px;font:600 12px var(--f-body);letter-spacing:.08em;text-transform:uppercase;color:var(--mute)}
-.seg button+button{border-left:1px solid var(--line-hi)}
-.seg3{grid-template-columns:repeat(3,minmax(0,1fr))}.seg3 button{font-size:11px;letter-spacing:.03em;padding:0 4px;min-width:0}
-#splitRow{flex-wrap:wrap}#splitRow .seg{width:100%}
-.seg button[aria-pressed="true"]{background:var(--amber-soft);color:var(--amber)}
-.field{display:grid;gap:5px;margin-top:12px}
-.field label,.mini label{font:600 10px var(--f-body);letter-spacing:.14em;text-transform:uppercase;color:var(--faint)}
-select,input[type=text]{height:34px;width:100%;background:var(--field-bg);border:1px solid var(--line-hi);border-radius:3px;padding:0 8px;min-width:0}
-.note{margin:10px 0 0;font-size:12px;color:var(--mute)}
-.note.warn{color:var(--warn)}
-.note.err{color:var(--err)}
-.file-row{display:flex;align-items:center;gap:10px;margin-top:12px;min-width:0}
-.fname{font:400 12px var(--f-mono);color:var(--mute);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;min-width:0}
-.player{display:grid;grid-template-columns:auto minmax(0,1fr) auto;align-items:center;gap:10px;margin-top:10px}
-.tm{font:400 11px var(--f-mono);color:var(--mute);font-variant-numeric:tabular-nums;white-space:nowrap}
-
-input[type=range]{-webkit-appearance:none;appearance:none;height:22px;background:transparent;width:100%;min-width:0;margin:0}
-input[type=range]::-webkit-slider-runnable-track{height:4px;background:var(--line-hi);border-radius:2px}
-input[type=range]::-moz-range-track{height:4px;background:var(--line-hi);border-radius:2px}
-input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:14px;height:14px;margin-top:-5px;border-radius:50%;background:var(--amber);border:2px solid var(--ink)}
-input[type=range]::-moz-range-thumb{width:10px;height:10px;border-radius:50%;background:var(--amber);border:2px solid var(--ink)}
-
-.rec-row{display:flex;align-items:center;gap:14px;flex-wrap:wrap}
-.rec-btn{flex:none;width:68px;height:68px;border-radius:50%;border:2px solid #5b2923;background:radial-gradient(circle at 35% 30%,#2a2d35,#171a20);display:grid;place-items:center;padding:0}
-.rec-btn i{display:block;width:30px;height:30px;border-radius:50%;background:radial-gradient(circle at 35% 30%,#ff8274,#e03324 60%,#9b1f15);transition:border-radius .15s,width .15s,height .15s}
-.rec-btn[aria-pressed="true"]{border-color:var(--rec)}
-.rec-btn[aria-pressed="true"] i{border-radius:3px;width:24px;height:24px;animation:pulse 1.1s ease-in-out infinite}
-@keyframes pulse{50%{opacity:.55}}
-@media (prefers-reduced-motion:reduce){.rec-btn[aria-pressed="true"] i{animation:none}}
-.timer{font:500 34px/1 var(--f-mono);font-variant-numeric:tabular-nums;letter-spacing:.02em}
-.tgl-row{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-top:16px;padding-top:14px;border-top:1px solid var(--line)}
-.tgl-row b{font:600 12px var(--f-body);letter-spacing:.08em;text-transform:uppercase}
-.sub{margin-top:16px;padding-top:14px;border-top:1px solid var(--line)}
-.sub-h{font:600 11px var(--f-body);letter-spacing:.16em;text-transform:uppercase;color:var(--mute)}
-.mini{display:grid;grid-template-columns:48px minmax(0,1fr) 54px;align-items:center;gap:10px;margin-top:8px}
-.mini span{font:400 11px var(--f-mono);color:var(--mute);text-align:right;font-variant-numeric:tabular-nums}
-.chk{display:flex;align-items:center;gap:8px;margin-top:10px;font-size:12px;color:var(--mute)}
-.chk input{accent-color:var(--amber);width:16px;height:16px;margin:0}
-
-/* presets */
-.pads{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:12px}
-@media (max-width:1000px){.pads{grid-template-columns:repeat(3,minmax(0,1fr))}}
-@media (max-width:820px){.pads{grid-template-columns:repeat(2,minmax(0,1fr))}.pad:last-child:nth-child(odd){grid-column:1/-1}}
-.pad{position:relative;text-align:left;padding:14px 16px;background:linear-gradient(180deg,var(--pad-top),var(--pad-bot));border:1px solid var(--line-hi);border-radius:4px;display:grid;gap:6px;align-content:start;min-height:96px;min-width:0}
-.pad:hover{border-color:var(--hover)}
-.pad .nm{font:800 26px/1 var(--f-display);letter-spacing:.06em;text-transform:uppercase;overflow-wrap:anywhere;padding-right:18px}
-.pad .ds{font-size:12px;color:var(--mute)}
-.pad .pl{position:absolute;top:14px;right:14px;width:9px;height:9px;border-radius:50%;background:var(--led-off)}
-.pad[aria-pressed="true"]{border-color:var(--pc);box-shadow:0 0 0 1px var(--pc),0 0 24px -8px var(--pc)}
-.pad[aria-pressed="true"] .pl{background:var(--pc);box-shadow:0 0 10px var(--pc)}
-.mine{display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:12px 20px;margin-top:14px;padding-top:14px;border-top:1px solid var(--line)}
-.chips{display:flex;flex-wrap:wrap;gap:8px;min-width:0;flex:1 1 260px}
-.chips .none{font-size:12px;color:var(--faint)}
-.chipwrap{display:inline-flex;border:1px solid var(--line-hi);border-radius:3px;overflow:hidden;background:var(--panel-2)}
-.chipwrap button{border:0;background:transparent;height:30px;padding:0 10px;font:500 12px var(--f-body)}
-.chipwrap .pick[aria-pressed="true"]{background:var(--amber-soft);color:var(--amber)}
-.chipwrap .del{border-left:1px solid var(--line-hi);color:var(--mute);font-size:11px;letter-spacing:.06em}
-.chipwrap .del:hover{color:var(--rec)}
-.save{display:flex;gap:8px;flex:0 1 380px;min-width:0}
-.save input{flex:1 1 auto}
-
-/* rack */
-.rack{display:flex;flex-wrap:wrap;gap:12px}
-.mod{flex:1 1 calc(var(--n)*84px + 36px);display:flex;flex-direction:column}
-.mod .ph{margin-bottom:10px}
-.mod .ph h2{color:var(--text)}
-.mtog{background:transparent;border:0;padding:6px;margin:-6px;border-radius:50%;display:inline-flex}
-.mod.off .knobs{opacity:.38}
-.knobs{display:flex;flex-wrap:wrap;justify-content:space-around;gap:14px 6px;transition:opacity .15s}
-.cap-note{margin:12px 0 0;font-size:11px;color:var(--faint)}
-.knob{width:72px;display:grid;justify-items:center;gap:4px}
-.dial{position:relative;width:64px;height:64px;border-radius:50%;touch-action:none;cursor:ns-resize;user-select:none;-webkit-user-select:none}
-.dial svg{position:absolute;top:0;right:0;bottom:0;left:0;width:100%;height:100%;overflow:visible}
-.cap{position:absolute;top:11px;right:11px;bottom:11px;left:11px;border-radius:50%;
-  background:conic-gradient(from 20deg,#353b47,#20242c 18%,#3c4351 36%,#1d2027 55%,#3a4151 72%,#20242c 88%,#353b47);
-  box-shadow:0 3px 7px rgba(0,0,0,.65),inset 0 0 0 1px rgba(255,255,255,.07),inset 0 1px 0 rgba(255,255,255,.13)}
-.ptr-wrap{position:absolute;top:11px;right:11px;bottom:11px;left:11px;pointer-events:none}
-.ptr{position:absolute;left:50%;top:3px;width:2px;height:10px;margin-left:-1px;background:var(--amber);border-radius:1px;box-shadow:0 0 6px rgba(255,179,64,.75)}
-.k-label{font:600 10px var(--f-body);letter-spacing:.1em;text-transform:uppercase;color:var(--mute);text-align:center;line-height:1.2}
-.k-val{font:500 11px var(--f-mono);font-variant-numeric:tabular-nums;min-height:15px;text-align:center}
-
-/* takes */
-.takes{display:grid;gap:10px}
-.take{display:grid;grid-template-columns:auto minmax(120px,200px) minmax(0,1fr) auto;align-items:center;gap:12px;padding:10px 12px;background:var(--take-bg);border:1px solid var(--line);border-radius:3px}
-@media (max-width:760px){.take{grid-template-columns:auto minmax(0,1fr)}.take .wave,.take .take-acts{grid-column:1/-1}}
-.take-meta{display:grid;gap:2px;min-width:0}
-.take-name{height:28px;padding:0 6px;background:transparent;border:1px solid transparent;border-radius:3px;font:600 13px var(--f-body);width:100%;min-width:0}
-.take-name:hover,.take-name:focus{border-color:var(--line-hi);background:var(--field-bg)}
-.take-info{font:400 11px var(--f-mono);color:var(--faint);padding-left:7px}
-.wave{position:relative;height:36px;background:#0c0d10;border-radius:2px;overflow:hidden;cursor:pointer;min-width:0}
-.wave canvas{position:absolute;top:0;right:0;bottom:0;left:0;width:100%;height:100%}
-.wave .prog{position:absolute;left:0;top:0;bottom:0;width:var(--p,0%);background:rgba(255,179,64,.16);border-right:1px solid var(--amber)}
-.take-acts{display:flex;gap:8px;flex-wrap:wrap}
-.empty{margin:0;font-size:13px;color:var(--mute)}
-
-.cam-view{position:relative;height:0;padding-top:56.25%;max-width:100%;background:#08090b;border:1px solid #07080a;border-radius:2px;overflow:hidden;box-shadow:inset 0 0 0 1px #1e222a}
-.cam-view video{position:absolute;top:0;right:0;bottom:0;left:0;width:100%;height:100%;object-fit:cover;background:#000}
-.cam-off{position:absolute;top:0;right:0;bottom:0;left:0;display:grid;place-items:center;font:500 11px var(--f-mono);letter-spacing:.14em;text-transform:uppercase;color:#4b515d;text-align:center;padding:0 12px}
-.cam-ctl{display:flex;flex-wrap:wrap;gap:8px;margin-top:12px}
-.stage{position:fixed;top:0;right:0;bottom:0;left:0;z-index:30;background:#000}
-.stage video{position:absolute;top:0;right:0;bottom:0;left:0;width:100%;height:100%;object-fit:contain;background:#000}
-.stage-top,.stage-bot{position:absolute;left:0;right:0;
-  padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px))}
-.stage-top{top:0;display:flex;align-items:center;justify-content:space-between;gap:12px;padding-top:calc(14px + env(safe-area-inset-top,0px));padding-bottom:30px;background:linear-gradient(180deg,rgba(0,0,0,.65),transparent)}
-.stage-bot{bottom:0;display:grid;grid-template-columns:auto minmax(0,1fr) auto;align-items:center;gap:16px;padding-top:40px;padding-bottom:calc(16px + env(safe-area-inset-bottom,0px));background:linear-gradient(0deg,rgba(0,0,0,.72),transparent)}
-.stage-name{font:800 24px/1 var(--f-display);letter-spacing:.08em;text-transform:uppercase;min-width:0}
-.stage-timer{font:500 20px var(--f-mono);font-variant-numeric:tabular-nums}
-.stage canvas{display:block;width:100%;height:12px}
-.stage .rec-btn{width:56px;height:56px}
-.modal{position:fixed;top:0;right:0;bottom:0;left:0;z-index:40;background:rgba(5,6,8,.9);display:grid;place-items:center;
-  padding:16px max(16px,env(safe-area-inset-right,0px)) calc(16px + env(safe-area-inset-bottom,0px)) max(16px,env(safe-area-inset-left,0px))}
-.modal-box{width:min(960px,100%);display:grid;gap:10px;min-width:0}
-.modal-h{display:flex;justify-content:space-between;align-items:center;gap:12px}
-.modal video{width:100%;max-height:78vh;background:#000}
-.foot{font-size:12px;color:var(--faint);max-width:80ch}
-/* phones and tablets: bigger touch targets, no input zoom, small-screen type */
-@media (pointer:coarse){
-  .btn{height:44px}.btn.sm{height:40px;min-width:44px}
-  .seg button{height:44px}
-  select,input[type=text]{height:44px}
-  .chipwrap button{height:40px;padding:0 14px}
-  .mtog{padding:14px;margin:-14px}
-  input[type=range]{height:34px}
-  input[type=range]::-webkit-slider-runnable-track{height:6px}
-  input[type=range]::-webkit-slider-thumb{width:24px;height:24px;margin-top:-9px}
-  input[type=range]::-moz-range-thumb{width:20px;height:20px}
-  .chk input{width:22px;height:22px}
-  .take-name{height:40px}
-  .wave{height:44px}
-  .knobs{gap:20px 6px}
-}
-@media (max-width:820px){select,input[type=text],.take-name{font-size:16px}}
-@media (max-width:380px){
-  .brand h1{font-size:30px}.pad .nm{font-size:21px}.timer{font-size:28px}
-  .pad{padding:12px 12px;min-height:84px}.panel{padding:12px}
-}
-@media (orientation:landscape) and (max-height:520px){canvas.scope{height:170px}}
-.toast{position:fixed;left:0;right:0;bottom:0;display:flex;justify-content:center;pointer-events:none;z-index:20;
-  padding:0 max(16px,env(safe-area-inset-left,0px)) calc(16px + env(safe-area-inset-bottom,0px))}
-.toast span{background:#2a2f39;border:1px solid var(--line-hi);border-radius:3px;padding:9px 14px;font-size:13px;opacity:0;transform:translateY(6px);transition:opacity .2s,transform .2s;max-width:520px}
-.toast.show span{opacity:1;transform:none}
-.wm{margin:14px 0 4px}.wm .seg{max-width:360px}.wm .seg button{height:40px;font-size:13px}
-</style>
-<style>:root{padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}body{margin:0}</style>
+<link rel="stylesheet" href="app.css">
 </head><body>
 
-<div class="shell">
-  <header class="top">
-    <div class="brand"><h1>Tonix Lab</h1><small>Vocal channel &amp; recorder</small></div>
-    <div class="top-r">
-      <div class="status" role="status" aria-live="polite"><i class="led" id="stLed"></i><span id="stText">Standby</span></div>
-      <div class="seg seg3 theme-seg" role="group" aria-label="Theme"><button id="thDark" aria-pressed="true">Dark</button><button id="thSys" aria-pressed="false">System</button><button id="thLight" aria-pressed="false">Light</button></div>
-      <button class="btn" id="install" hidden>Install app</button>
-      <button class="btn" id="bypass" aria-pressed="false" title="Hear your voice without the effects">FX bypass</button>
-      <button class="btn power" id="power" aria-pressed="false"><i class="led"></i><span id="powerTxt">Power on</span></button>
+<svg width="0" height="0" style="position:absolute" aria-hidden="true">
+  <symbol id="i-home" viewBox="0 0 24 24"><path d="M3 11l9-8 9 8v9a1 1 0 0 1-1 1h-5v-6H9v6H4a1 1 0 0 1-1-1z"/></symbol>
+  <symbol id="i-mic" viewBox="0 0 24 24"><rect x="9" y="3" width="6" height="12" rx="3"/><path d="M5 11a7 7 0 0 0 14 0M12 18v3"/></symbol>
+  <symbol id="i-live" viewBox="0 0 24 24"><circle cx="12" cy="12" r="2.2"/><path d="M7.8 7.8a6 6 0 0 0 0 8.4M16.2 7.8a6 6 0 0 1 0 8.4M4.9 4.9a10 10 0 0 0 0 14.2M19.1 4.9a10 10 0 0 1 0 14.2"/></symbol>
+  <symbol id="i-share" viewBox="0 0 24 24"><circle cx="6" cy="12" r="2.6"/><circle cx="18" cy="6" r="2.6"/><circle cx="18" cy="18" r="2.6"/><path d="M8.3 10.8l7.4-3.6M8.3 13.2l7.4 3.6"/></symbol>
+  <symbol id="i-help" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M9.6 9.4a2.5 2.5 0 1 1 3.5 2.3c-.7.4-1.1.9-1.1 1.8M12 17h.01"/></symbol>
+</svg>
+
+<div class="app">
+
+  <!-- phone top bar -->
+  <header class="mtop">
+    <a class="brand" href="#home"><img src="icon-192.png" alt="" width="30" height="30"><b>Tonix Lab</b></a>
+    <div style="display:flex;gap:8px;align-items:center">
+      <button class="btn sm" data-install hidden>Install</button>
+      <button class="btn sm ghost" data-theme-cycle aria-label="Change theme">Theme</button>
     </div>
   </header>
-  <div class="wm"><div class="seg" role="group" aria-label="Session type"><button id="wmPod" aria-pressed="false">Podcast</button><button id="wmMus" aria-pressed="false">Music</button></div><p class="note" id="wmNote">Pick Podcast or Music and the app sets the sound, noise removal, ear split and recording for you in one tap.</p></div>
-  <p class="note" id="installNote" hidden></p>
 
-  <section class="deck" aria-label="Monitoring and recording">
-    <div class="panel">
-      <div class="ph"><h2>Output spectrum</h2><span class="legend"><i class="sw sw-spec"></i>Signal<i class="sw sw-eq"></i>EQ curve</span></div>
-      <div class="scope-wrap"><canvas id="scope" class="scope" role="img" aria-label="Live output spectrum with the EQ curve drawn over it"></canvas></div>
-      <div class="meters">
-        <div class="m-row"><span>IN</span><canvas id="mIn"></canvas><span class="m-val" id="vIn">-∞</span></div>
-        <div class="m-row"><span>OUT</span><canvas id="mOut"></canvas><span class="m-val" id="vOut">-∞</span></div>
-        <div class="m-row"><span>GR</span><canvas id="mGr"></canvas><span class="m-val" id="vGr">0.0 dB</span></div>
+  <!-- desktop sidebar -->
+  <aside class="side">
+    <a class="brand" href="#home"><img src="icon-192.png" alt="" width="30" height="30"><b>Tonix Lab</b></a>
+    <nav aria-label="Main">
+      <a href="#home" data-nav="home"><svg class="ico"><use href="#i-home"/></svg>Home</a>
+      <a href="studio.html"><svg class="ico"><use href="#i-mic"/></svg>Studio</a>
+      <a href="#live" data-nav="live"><svg class="ico"><use href="#i-live"/></svg>Go live</a>
+      <a href="#share" data-nav="share"><svg class="ico"><use href="#i-share"/></svg>Share &amp; embed</a>
+      <a href="#help" data-nav="help"><svg class="ico"><use href="#i-help"/></svg>How to</a>
+    </nav>
+    <div class="sfoot">
+      <button class="btn sm" data-install hidden>Install app</button>
+      <div class="seg" role="group" aria-label="Theme">
+        <button data-theme-set="dark" aria-pressed="true">Dark</button>
+        <button data-theme-set="system" aria-pressed="false">Auto</button>
+        <button data-theme-set="light" aria-pressed="false">Light</button>
       </div>
     </div>
+  </aside>
 
-    <div class="side">
-      <div class="panel">
-        <div class="ph"><h2>Source</h2></div>
-        <div class="seg" role="group" aria-label="Input source">
-          <button id="modeMic" aria-pressed="true">Microphone</button>
-          <button id="modeFile" aria-pressed="false">Audio file</button>
-        </div>
-        <div id="micBox">
-          <div class="field"><label for="devSel">Input (your mic)</label><select id="devSel"><option value="">System default</option></select></div>
-          <p class="note" id="micNow" role="status"></p>
-          <div class="field"><label>Background noise removal</label><div class="seg seg3" role="group" aria-label="Background noise removal"><button id="noiseOff" aria-pressed="false">Off</button><button id="noiseStd" aria-pressed="false">Standard</button><button id="noiseMax" aria-pressed="true">Maximum</button></div><p class="note" style="margin-top:8px">Standard turns on your device's built-in noise filter. Maximum adds an automatic gate that silences the mic between words and learns your room's noise. Works best with a close mic.</p></div>
-          <p class="note">Pick your wireless mic's receiver above, not the earbuds' built-in mic. On Bluetooth earbuds, using their mic drops playback to call quality.</p>
-        </div>
-        <div class="field" id="outField"><label for="outSel">Output (your earbuds)</label><select id="outSel"><option value="">System default</option></select><p class="note" id="outNote" role="status"></p></div>
-        <div id="fileBox" hidden>
-          <div class="file-row"><label class="btn sm file-btn">Load vocal file<input type="file" id="fileIn" accept="audio/*" class="sr"></label><span class="fname" id="fileName">No file loaded</span></div>
-          <div class="player"><button class="btn sm" id="filePlay" disabled>Play</button><input type="range" id="fileSeek" min="0" max="1000" value="0" aria-label="File position" disabled><span class="tm" id="fileTime">0:00 / 0:00</span></div>
-        </div>
-        <p class="note" id="srcNote" role="status"></p>
-      </div>
+  <main id="main">
 
-      <div class="panel" id="camPanel">
-        <div class="ph"><h2>Camera</h2><span class="rstate" id="camState">Off</span></div>
-        <div class="cam-view"><video id="camVid" muted playsinline autoplay></video><div class="cam-off" id="camOff">Camera off</div></div>
-        <div class="cam-ctl">
-          <button class="btn" id="camToggle" aria-pressed="false">Turn on</button>
-          <button class="btn" id="camFlip" hidden>Flip camera</button>
-          <button class="btn" id="camStage" disabled>Stage view</button>
-        </div>
-        <div class="field"><label for="camSel">Camera</label><select id="camSel"><option value="">System default</option></select></div>
-        <label class="chk"><input type="checkbox" id="camSave" checked>Save video with each take</label>
-        <label class="chk"><input type="checkbox" id="camMirror" checked>Mirror the preview</label>
-        <p class="note">Video takes carry your processed vocal and backing track. They are large, so delete the ones you do not need.</p>
-        <p class="note" id="camNote" role="status"></p>
-      </div>
-
-      <div class="panel">
-        <div class="ph"><h2>Recorder</h2><span class="rstate" id="recState">Ready</span></div>
-        <div class="rec-row">
-          <button class="rec-btn" id="rec" aria-pressed="false" aria-label="Record"><i></i></button>
-          <div class="timer" id="timer">00:00.0</div>
-          <button class="btn" id="lastPlay" disabled>Play last take</button>
-        </div>
-        <div class="tgl-row" id="monRow">
-          <div><b>Hear myself</b><div class="note" style="margin:2px 0 0">Your voice plays in your earbuds while you record, like a podcast. Turn off if you use speakers (feedback). Bluetooth adds a little delay.</div></div>
-          <button class="btn" id="monitor" aria-pressed="true">On</button>
-        </div>
-        <div class="tgl-row" id="splitRow">
-          <div><b>Ear split</b><div class="note" style="margin:2px 0 0">Backing track in one ear, your voice in the other. Only changes what you hear in your earbuds. Your recordings stay normal.</div></div>
-          <div class="seg seg3" role="group" aria-label="Ear split"><button id="splitOff" aria-pressed="true">Off</button><button id="splitL" aria-pressed="false">Track left</button><button id="splitR" aria-pressed="false">Track right</button></div>
-        </div>
-        <div class="sub">
-          <div class="sub-h">Backing track</div>
-          <div class="file-row"><label class="btn sm file-btn">Load track<input type="file" id="backIn" accept="audio/*" class="sr"></label><span class="fname" id="backName">None</span></div>
-          <div class="player"><button class="btn sm" id="backPlay" disabled>Play</button><input type="range" id="backSeek" min="0" max="1000" value="0" aria-label="Backing track position" disabled><span class="tm" id="backTime">0:00 / 0:00</span></div>
-          <div class="mini"><label for="backVol">Level</label><input type="range" id="backVol" min="0" max="100" value="80"><span id="backVolV">80%</span></div>
-          <div class="mini"><label for="backOff">Align</label><input type="range" id="backOff" min="0" max="400" value="0"><span id="backOffV">0 ms</span></div>
-          <label class="chk"><input type="checkbox" id="backPrint" checked>Print the backing track into the take</label>
-          <p class="note">If your voice lands late against the track, raise Align. Bluetooth earbuds often need 150 to 250 ms.</p>
+    <!-- ================= HOME ================= -->
+    <section class="view" id="v-home" aria-labelledby="h-home">
+      <div class="hero">
+        <h1 id="h-home">Go live from any device. Own every setting.</h1>
+        <p class="lede">A studio and streaming hub built for phones first: pro vocal audio, full control of bitrate and encoders, links that drop into OBS or Streamlabs, and players you can put on your own site.</p>
+        <div class="row">
+          <a class="btn pri" href="#live">Set up a stream</a>
+          <a class="btn" href="studio.html">Open the studio</a>
         </div>
       </div>
-    </div>
-  </section>
 
-  <section class="panel" aria-labelledby="presetsH">
-    <div class="ph"><h2 id="presetsH">Presets</h2><span class="rstate" id="presetState"></span></div>
-    <div class="pads" id="pads"></div>
-    <div class="mine">
-      <div class="chips" id="chips"></div>
-      <form class="save" id="saveForm">
-        <label class="sr" for="presetName">Preset name</label>
-        <input type="text" id="presetName" maxlength="24" placeholder="Name your sound" autocomplete="off">
-        <button class="btn" type="submit">Save preset</button>
-      </form>
-    </div>
-  </section>
+      <div class="tiles" style="margin-top:14px">
+        <a class="tile" href="studio.html"><svg class="ico"><use href="#i-mic"/></svg><b>Studio</b><span>Vocal channel strip, presets, recorder and camera.</span></a>
+        <a class="tile" href="#live"><svg class="ico"><use href="#i-live"/></svg><b>Go live</b><span>Camera, mic, bitrate and encoder controls.</span></a>
+        <a class="tile" href="#share"><svg class="ico"><use href="#i-share"/></svg><b>Share</b><span>Links, social posts, embeds and custom players.</span></a>
+        <a class="tile" href="#help"><svg class="ico"><use href="#i-help"/></svg><b>How to</b><span>Step-by-step help for phones, OBS and Streamlabs.</span></a>
+      </div>
 
-  <section aria-label="Channel strip"><div class="rack" id="rack"></div></section>
+      <div class="cols two" style="margin-top:14px">
+        <div class="panel">
+          <div class="ph"><h2 class="ph-t">Start in three steps</h2></div>
+          <ol class="steps">
+            <li><div><b>Pick your sound</b><span>Open the Studio, choose a preset and check your levels.</span></div></li>
+            <li><div><b>Choose your quality</b><span>On Go live, pick a preset or set the bitrate yourself.</span></div></li>
+            <li><div><b>Share the link</b><span>Send viewers a link, or paste one into OBS or Streamlabs.</span></div></li>
+          </ol>
+        </div>
+        <div class="panel">
+          <div class="ph"><h2 class="ph-t">Platform status</h2></div>
+          <ul class="status-list">
+            <li><div><b>Studio</b><small>Vocal strip, presets, recorder, camera</small></div><span class="pill ok"><i class="dot"></i>Ready</span></li>
+            <li><div><b>Stream settings</b><small>Resolution, fps, bitrate, codec, audio</small></div><span class="pill ok"><i class="dot"></i>Ready</span></li>
+            <li><div><b>Live rooms and viewing</b><small>Publish and watch links</small></div><span class="pill soon">Next</span></li>
+            <li><div><b>Soundboard and playlist</b><small>Mixed into the stream audio</small></div><span class="pill soon">Planned</span></li>
+            <li><div><b>Live chat</b><small>Chat beside every player</small></div><span class="pill soon">Planned</span></li>
+            <li><div><b>Embeds and offline loops</b><small>Custom players, loop when offline</small></div><span class="pill soon">Planned</span></li>
+          </ul>
+        </div>
+      </div>
+    </section>
 
-  <section class="panel" aria-labelledby="takesH">
-    <div class="ph"><h2 id="takesH">Takes</h2><span class="rstate">Kept on this device until you delete them</span></div>
-    <div class="takes" id="takes"></div>
-    <p class="empty" id="takesEmpty">No takes yet. Press the red button and sing.</p>
-  </section>
+    <!-- ================= GO LIVE ================= -->
+    <section class="view" id="v-live" aria-labelledby="h-live" hidden>
+      <header>
+        <h1 id="h-live">Go live</h1>
+        <p class="lede">Set how your stream looks and sounds. Your choices save on this device and carry into the live room.</p>
+      </header>
 
-  <p class="foot">Drag a knob up or down. On a phone, double-tap a knob to reset it. On a computer, hold Shift for fine moves, or focus a knob and use the arrow keys. Gain, gate and level stay put when you switch presets, so a new sound never changes how hot your mic is.</p>
+      <div class="cols live">
+        <!-- left: preview -->
+        <div class="stack">
+          <div class="panel">
+            <div class="ph"><h2 class="ph-t">Preview</h2><span class="pill" id="prevState">Off</span></div>
+            <div class="vid" id="vid">
+              <video id="prev" muted playsinline autoplay></video>
+              <span class="tally"><i class="dot"></i>PREVIEW</span>
+              <div class="ph-msg" id="prevMsg">Start the preview to check your camera and mic</div>
+            </div>
+            <div class="meter" aria-hidden="true"><i id="lvl"></i></div>
+            <div class="actual" id="actual" role="status" aria-live="polite"></div>
+            <div style="display:flex;gap:10px;margin-top:12px;flex-wrap:wrap">
+              <button class="btn pri" id="prevBtn" style="flex:1 1 160px">Start preview</button>
+              <button class="btn" id="flipBtn" hidden style="flex:1 1 120px">Flip camera</button>
+            </div>
+            <p class="note" id="prevNote" role="status"></p>
+            <div class="field"><label for="camSel">Camera</label><select id="camSel" data-k="cam"><option value="">System default</option></select></div>
+            <div class="field"><label for="micSel">Microphone</label><select id="micSel" data-k="mic"><option value="">System default</option></select></div>
+            <p class="note" id="devNote">Start the preview once so the browser can list your devices.</p>
+          </div>
+
+          <div class="panel">
+            <div class="ph"><h2 class="ph-t">What this stream needs</h2></div>
+            <div class="readout">
+              <div><small>Total</small><b id="rTotal">-</b></div>
+              <div><small>Per hour</small><b id="rHour">-</b></div>
+              <div><small>Upload</small><b id="rUp">-</b></div>
+            </div>
+            <p class="note">Upload is the speed your connection should sustain, including 30% headroom. Test it on a speed-test site while you are on the same network you will stream from.</p>
+          </div>
+        </div>
+
+        <!-- right: settings -->
+        <div class="stack">
+          <div class="panel">
+            <div class="ph"><h2 class="ph-t">Quick presets</h2></div>
+            <div class="chips" id="presets" role="group" aria-label="Quality presets"></div>
+            <p class="note" id="presetNote"></p>
+          </div>
+
+          <div class="panel">
+            <div class="ph"><h2 class="ph-t">Video</h2></div>
+            <label class="chk"><input type="checkbox" data-k="video"><span>Send video<small>Turn off for an audio-only show.</small></span></label>
+            <div id="videoBox">
+              <div class="field"><span class="lbl">Resolution</span>
+                <div class="seg" role="group" aria-label="Resolution">
+                  <button data-k="res" data-v="360">360p</button><button data-k="res" data-v="480">480p</button><button data-k="res" data-v="720">720p</button><button data-k="res" data-v="1080">1080p</button>
+                </div></div>
+              <div class="field"><span class="lbl">Frame rate</span>
+                <div class="seg" role="group" aria-label="Frame rate">
+                  <button data-k="fps" data-v="24">24</button><button data-k="fps" data-v="30">30</button><button data-k="fps" data-v="60">60</button>
+                </div></div>
+              <div class="field"><span class="lbl">Video bitrate</span>
+                <div class="rng"><label class="sr" for="vKbps">Video bitrate</label><span class="note" style="margin:0" id="vHintShort"></span><output id="vOut" for="vKbps"></output>
+                  <input type="range" id="vKbps" data-k="vKbps" min="300" max="9000" step="100"></div>
+                <p class="note" id="vHint" role="status"></p>
+                <button class="btn sm" id="vSuggest" style="justify-self:start">Set to suggested</button>
+              </div>
+              <div class="field"><span class="lbl">Bitrate mode</span>
+                <div class="seg" role="group" aria-label="Bitrate mode">
+                  <button data-k="vMode" data-v="fixed">Fixed</button><button data-k="vMode" data-v="auto">Adaptive</button>
+                </div>
+                <p class="note" id="modeNote"></p></div>
+              <div class="field"><label for="codec">Video encoder</label>
+                <select id="codec" data-k="codec"></select>
+                <p class="note" id="codecNote"></p></div>
+            </div>
+          </div>
+
+          <div class="panel">
+            <div class="ph"><h2 class="ph-t">Audio</h2></div>
+            <div class="field" style="margin-top:0"><span class="lbl">Audio bitrate</span>
+              <div class="rng"><label class="sr" for="aKbps">Audio bitrate</label><span></span><output id="aOut" for="aKbps"></output>
+                <input type="range" id="aKbps" data-k="aKbps" min="32" max="320" step="16"></div>
+              <p class="note">128 kbps is clear for voice. Use 192 or more for music.</p></div>
+            <div class="field"><span class="lbl">Channels</span>
+              <div class="seg" role="group" aria-label="Channels">
+                <button data-k="stereo" data-v="false">Mono</button><button data-k="stereo" data-v="true">Stereo</button>
+              </div></div>
+            <div class="field"><label for="sr">Sample rate</label>
+              <select id="sr" data-k="sr"><option value="44100">44.1 kHz</option><option value="48000">48 kHz (recommended)</option></select></div>
+            <label class="chk"><input type="checkbox" data-k="ec"><span>Echo cancellation<small>For speakers or a phone held at arm's length. Turn off for music and when wearing headphones.</small></span></label>
+            <label class="chk"><input type="checkbox" data-k="ns"><span>Noise suppression<small>Reduces fans and room hiss. It can clip singing, so leave it off for music.</small></span></label>
+            <label class="chk"><input type="checkbox" data-k="agc"><span>Auto gain<small>Evens out loud and quiet speech. Off gives you full manual control.</small></span></label>
+            <p class="note">The Studio's channel strip and noise removal are the better tools for a polished vocal.</p>
+          </div>
+
+          <div class="golive">
+            <button class="btn live block" id="goBtn" aria-disabled="true">Go live</button>
+            <p class="note" id="goNote">Live rooms arrive in the next stage. Your settings are already saved and will be used.</p>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ================= SHARE & EMBED ================= -->
+    <section class="view" id="v-share" aria-labelledby="h-share" hidden>
+      <header>
+        <h1 id="h-share">Share &amp; embed</h1>
+        <p class="lede">Get your links, post to social, and build a player for your own website.</p>
+      </header>
+      <div class="seg" role="group" aria-label="Share section" style="margin-bottom:14px">
+        <button id="tabLinks" aria-pressed="true">Links &amp; social</button>
+        <button id="tabPlayer" aria-pressed="false">Player &amp; embed</button>
+      </div>
+      <div class="banner" style="margin-bottom:14px"><span><b>Preview of your links.</b> They will start working when live rooms switch on in the next stage. Your room name is saved.</span></div>
+
+      <!-- links -->
+      <div id="paneLinks" class="stack">
+        <div class="panel">
+          <div class="ph"><h2 class="ph-t">Your room</h2></div>
+          <div class="field" style="margin-top:0"><label for="roomIn">Room name</label>
+            <div style="display:flex;gap:8px"><input type="text" id="roomIn" maxlength="32" autocomplete="off" autocapitalize="off" spellcheck="false" placeholder="my-show"><button class="btn" id="roomNew" type="button">Random</button></div>
+            <p class="note">Letters, numbers and dashes. Anyone with the link can watch, so pick something hard to guess for private streams.</p></div>
+        </div>
+        <div class="cols two">
+          <div class="link"><b>Viewer link</b><code id="lkWatch"></code><p>Send this to your audience.</p><button class="btn" data-copy="lkWatch">Copy link</button></div>
+          <div class="link"><b>Guest invite</b><code id="lkGuest"></code><p>For a co-host who joins with their own camera and mic.</p><button class="btn" data-copy="lkGuest">Copy link</button></div>
+          <div class="link"><b>OBS / Streamlabs source</b><code id="lkObs"></code><p>Clean video and audio with no page around it. Paste it into a Browser source.</p><button class="btn" data-copy="lkObs">Copy link</button></div>
+          <div class="link"><b>Embed link</b><code id="lkEmbed"></code><p>The bare player. Use the Player &amp; embed tab for the code.</p><button class="btn" data-copy="lkEmbed">Copy link</button></div>
+        </div>
+        <div class="panel">
+          <div class="ph"><h2 class="ph-t">Post to social</h2></div>
+          <div class="field" style="margin-top:0"><label for="msgIn">Message</label><input type="text" id="msgIn" maxlength="120" value="Come watch me live"></div>
+          <div class="socials" id="socials" style="margin-top:12px"></div>
+          <p class="note">TikTok and Instagram have no web share option. Copy the viewer link and add it to your bio or story sticker.</p>
+        </div>
+      </div>
+
+      <!-- player -->
+      <div id="panePlayer" class="stack" hidden>
+        <div class="cols two">
+          <div class="panel">
+            <div class="ph"><h2 class="ph-t">Live preview</h2>
+              <div class="seg" role="group" aria-label="Preview state" style="min-width:150px"><button id="pvLive" aria-pressed="true">Live</button><button id="pvOff" aria-pressed="false">Offline</button></div></div>
+            <div class="pv" id="pv">
+              <div class="screen" id="pvScreen">
+                <video id="pvLoop" muted loop playsinline hidden></video>
+                <div class="centre" id="pvCentre"><div><div class="play"></div><span id="pvMsg">Your live stream appears here</span></div></div>
+                <span class="badge" id="pvBadge">LIVE</span><span class="views" id="pvViews">0 watching</span>
+              </div>
+              <div class="bar"><b id="pvTitle">My live stream</b><span>Tonix Lab</span></div>
+              <div class="chat" id="pvChat"><span><b>Sam</b> Sound is great</span><span><b>Jo</b> Hello from the UK</span></div>
+            </div>
+          </div>
+          <div class="panel">
+            <div class="ph"><h2 class="ph-t">Customize</h2></div>
+            <div class="field" style="margin-top:0"><label for="pTitle">Player title</label><input type="text" id="pTitle" maxlength="60"></div>
+            <div class="field"><span class="lbl">Accent color</span>
+              <div class="swatches" id="swatches"></div></div>
+            <div class="field"><span class="lbl">Shape</span>
+              <div class="seg scroll" role="group" aria-label="Aspect ratio">
+                <button data-pk="ratio" data-v="16:9">16:9</button><button data-pk="ratio" data-v="9:16">9:16</button><button data-pk="ratio" data-v="1:1">1:1</button><button data-pk="ratio" data-v="4:3">4:3</button>
+              </div></div>
+            <label class="chk"><input type="checkbox" data-pk="chat"><span>Show live chat</span></label>
+            <label class="chk"><input type="checkbox" data-pk="viewers"><span>Show viewer count</span></label>
+            <label class="chk"><input type="checkbox" data-pk="badge"><span>Show LIVE badge</span></label>
+            <label class="chk"><input type="checkbox" data-pk="autoplay"><span>Autoplay<small>Starts muted, as browsers require.</small></span></label>
+            <div class="field"><span class="lbl">Offline loop</span>
+              <label class="btn" style="cursor:pointer">Choose a video to loop<input type="file" id="loopIn" accept="video/*" class="sr"></label>
+              <p class="note" id="loopNote">Plays on repeat when you are not live. Try it with the Offline preview. Saving it to your room comes with the embed stage.</p></div>
+          </div>
+        </div>
+        <div class="panel">
+          <div class="ph"><h2 class="ph-t">Embed code</h2></div>
+          <label class="chk" style="padding-top:0"><input type="checkbox" data-pk="responsive"><span>Responsive<small>The player fills the width of its container.</small></span></label>
+          <label class="sr" for="embedCode">Embed code</label>
+          <textarea id="embedCode" readonly rows="6"></textarea>
+          <div style="display:flex;gap:10px;margin-top:10px;flex-wrap:wrap"><button class="btn pri" id="copyEmbed" style="flex:1 1 160px">Copy code</button></div>
+          <p class="note">Paste it into any page that allows HTML: WordPress, Wix, Squarespace, Webflow or your own site.</p>
+        </div>
+      </div>
+    </section>
+
+    <!-- ================= HELP ================= -->
+    <section class="view" id="v-help" aria-labelledby="h-help" hidden>
+      <header>
+        <h1 id="h-help">How to</h1>
+        <p class="lede">Stuck? Search below or open a topic.</p>
+      </header>
+      <div class="field" style="margin:0 0 6px"><label class="sr" for="helpQ">Search help</label><input type="search" id="helpQ" placeholder="Search: echo, OBS, bitrate, iPhone..." autocomplete="off"></div>
+      <p class="note" id="helpNone" hidden>Nothing matched. Try a shorter word like "mic" or "lag".</p>
+
+      <div class="h-group">Getting started</div>
+      <details id="h-first"><summary>Your first stream, step by step</summary><div class="body"><ol>
+        <li>Open <b>Studio</b> and press <b>Power on</b>. Pick a preset and speak: the meters should move.</li>
+        <li>Open <b>Go live</b> and press <b>Start preview</b>. Allow the camera and microphone when your browser asks.</li>
+        <li>Pick a <b>Quick preset</b>. <b>Balanced</b> is a safe start for most people.</li>
+        <li>Open <b>Share &amp; embed</b>, copy your viewer link and send it out.</li>
+      </ol></div></details>
+      <details id="h-phone"><summary>Using it on a phone or tablet</summary><div class="body"><ul>
+        <li>Use the tab bar at the bottom to move between Home, Studio, Go live, Share and How to.</li>
+        <li>Add it to your home screen for a full-screen app: on iPhone tap Share then <b>Add to Home Screen</b>; on Android tap <b>Install</b>.</li>
+        <li>Keep the screen on while live. Plug the phone in, because streaming drains the battery quickly.</li>
+        <li>Landscape gives a bigger preview. Portrait suits TikTok-style vertical streams.</li>
+      </ul></div></details>
+
+      <div class="h-group">OBS Studio and Streamlabs</div>
+      <details id="h-obs"><summary>Add your stream to OBS Studio</summary><div class="body"><ol>
+        <li>In <b>Share &amp; embed</b>, copy the <b>OBS / Streamlabs source</b> link.</li>
+        <li>In OBS, under <b>Sources</b>, press <b>+</b> and choose <b>Browser</b>.</li>
+        <li>Paste the link into <b>URL</b>. Set <b>Width</b> and <b>Height</b> to match your stream, for example 1280 by 720.</li>
+        <li>Tick <b>Control audio via OBS</b> so the sound shows up in the OBS mixer.</li>
+        <li>Press <b>OK</b>, then drag the corners to fit your scene.</li>
+      </ol><p>To keep OBS light, use the smallest size and frame rate that still looks good, and avoid 60 fps unless the action needs it.</p></div></details>
+      <details id="h-sl"><summary>Add your stream to Streamlabs Desktop</summary><div class="body"><ol>
+        <li>Copy the <b>OBS / Streamlabs source</b> link from <b>Share &amp; embed</b>.</li>
+        <li>In Streamlabs Desktop, open your scene, press <b>+</b> under <b>Sources</b> and choose <b>Browser Source</b>.</li>
+        <li>Paste the link into <b>URL</b> and match the width and height to your stream.</li>
+        <li>Press <b>Done</b>, then move and resize it in the scene.</li>
+      </ol></div></details>
+
+      <div class="h-group">Quality and bitrate</div>
+      <details id="h-bitrate"><summary>Which bitrate should I use?</summary><div class="body">
+        <p>Bitrate is how much data per second you send. More looks sharper but needs a faster connection. As a rule, keep the total under 70% of your upload speed.</p>
+        <table class="tbl"><thead><tr><th>Size</th><th>30 fps</th><th>60 fps</th></tr></thead><tbody>
+          <tr><td>360p</td><td>400-1000</td><td>600-1500</td></tr>
+          <tr><td>480p</td><td>600-1500</td><td>900-2200</td></tr>
+          <tr><td>720p</td><td>1500-4000</td><td>2500-6000</td></tr>
+          <tr><td>1080p</td><td>3000-6500</td><td>4500-9000</td></tr>
+        </tbody></table><p>Values are video kbps. Add the audio bitrate on top.</p></div></details>
+      <details id="h-mode"><summary>Fixed or Adaptive?</summary><div class="body"><p><b>Fixed</b> holds the bitrate you set. It is predictable and best for OBS or a steady connection.</p><p><b>Adaptive</b> starts there and lowers quality when your connection struggles, so viewers keep watching instead of buffering. Pick it on mobile data or shaky Wi-Fi.</p></div></details>
+      <details id="h-codec"><summary>Which video encoder?</summary><div class="body"><ul>
+        <li><b>H.264</b>: works almost everywhere and uses your device's hardware encoder. Best default, and the lightest on batteries.</li>
+        <li><b>VP8</b>: widely supported and simple. Slightly less efficient than H.264.</li>
+        <li><b>VP9</b>: sharper at the same bitrate, but uses more CPU.</li>
+        <li><b>AV1</b>: the most efficient, but heavy. Only use it on a recent, powerful device.</li>
+      </ul><p>Encoders your device lacks are greyed out on the Go live page.</p></div></details>
+
+      <div class="h-group">Fix it</div>
+      <details id="h-perm"><summary>Camera or microphone is blocked</summary><div class="body"><ol>
+        <li>Tap the <b>lock</b> or <b>settings</b> icon beside the web address.</li>
+        <li>Set <b>Camera</b> and <b>Microphone</b> to <b>Allow</b>.</li>
+        <li>Reload the page and press <b>Start preview</b> again.</li>
+      </ol><p><b>On iPhone:</b> if that fails, open Settings, then Safari, then Camera and Microphone, and choose Ask or Allow.</p>
+      <p><b>Inside Instagram, TikTok or Facebook:</b> these in-app browsers often block the camera. Use the menu to <b>Open in browser</b>.</p></div></details>
+      <details id="h-nosound"><summary>No sound, or very quiet</summary><div class="body"><ul>
+        <li>Check the <b>Microphone</b> choice on Go live: it may be pointing at the wrong device.</li>
+        <li>Watch the meter under the preview. If it does not move, the browser is not hearing the mic.</li>
+        <li>Make sure the phone is not on silent and no other app is using the mic.</li>
+        <li>With Auto gain off, speak closer or raise the mic level in your device settings.</li>
+      </ul></div></details>
+      <details id="h-echo"><summary>Echo, feedback or squealing</summary><div class="body"><ul>
+        <li>Wear headphones. It is the only sure fix.</li>
+        <li>Turn on <b>Echo cancellation</b> if you must use speakers.</li>
+        <li>Lower the speaker volume and keep the mic away from it.</li>
+      </ul></div></details>
+      <details id="h-bt"><summary>Bluetooth earbuds sound bad or lag</summary><div class="body"><p>When a Bluetooth headset's own mic is used, playback drops to phone-call quality and adds delay. Pick a separate microphone as your input and keep the earbuds for listening only. In the Studio, the <b>Align</b> slider fixes voice that lands late against a backing track.</p></div></details>
+      <details id="h-lag"><summary>Choppy video or buffering</summary><div class="body"><ul>
+        <li>Pick <b>Mobile data</b> or lower the resolution and frame rate.</li>
+        <li>Switch bitrate mode to <b>Adaptive</b>.</li>
+        <li>Move closer to the router, or use 5 GHz Wi-Fi or a cable.</li>
+        <li>Close other apps and tabs that use the camera, upload or lots of CPU.</li>
+        <li>If the device gets hot, drop to 30 fps and choose H.264.</li>
+      </ul></div></details>
+      <details id="h-actual"><summary>Preview shows a different size than I picked</summary><div class="body"><p>Browsers treat resolution and frame rate as a request, not an order. The line under the preview shows what you actually got. Many phone cameras cap at 30 fps in low light or on the front camera.</p></div></details>
+    </section>
+
+    <p class="foot">Tonix Lab · settings stay on this device.</p>
+  </main>
+
+  <nav class="tabs" aria-label="Main">
+    <a href="#home" data-nav="home"><svg class="ico"><use href="#i-home"/></svg>Home</a>
+    <a href="studio.html"><svg class="ico"><use href="#i-mic"/></svg>Studio</a>
+    <a href="#live" data-nav="live"><svg class="ico"><use href="#i-live"/></svg>Live</a>
+    <a href="#share" data-nav="share"><svg class="ico"><use href="#i-share"/></svg>Share</a>
+    <a href="#help" data-nav="help"><svg class="ico"><use href="#i-help"/></svg>Help</a>
+  </nav>
 </div>
-<div class="stage" id="stage" hidden role="dialog" aria-label="Stage view">
-  <video id="stageVid" muted playsinline autoplay></video>
-  <div class="stage-top"><span class="stage-name" id="stagePreset"></span><span class="stage-timer" id="stageTimer">00:00.0</span></div>
-  <div class="stage-bot"><button class="rec-btn" id="stageRec" aria-pressed="false" aria-label="Record"><i></i></button><canvas id="stageMeter" aria-label="Output level"></canvas><button class="btn" id="stageExit">Exit</button></div>
-</div>
-<div class="modal" id="watch" hidden role="dialog" aria-label="Video take">
-  <div class="modal-box"><div class="modal-h"><b id="watchTitle"></b><button class="btn sm" id="watchClose">Close</button></div><video id="watchVid" controls playsinline></video></div>
-</div>
-<div class="toast" id="toast" role="status" aria-live="polite"><span></span></div>
 
-<script>
-(function(){
-'use strict';
-
-/* ---------- helpers ---------- */
-const $=(s,r)=>(r||document).querySelector(s);
-const el=(tag,cls,txt)=>{const e=document.createElement(tag);if(cls)e.className=cls;if(txt!=null)e.textContent=txt;return e;};
-const clamp=(v,a,b)=>Math.min(b,Math.max(a,v));
-const dbToGain=d=>Math.pow(10,d/20);
-const toDb=g=>20*Math.log10(Math.max(g,1e-9));
-const SVGNS='http://www.w3.org/2000/svg';
-const IN_ARTIFACT=!!(window.claude&&typeof window.claude.use==='function');
-const UA=navigator.userAgent||'';
-const IN_APP=/FBAN|FBAV|FB_IAB|Instagram|TikTok|musical_ly|BytedanceWebview|Line\/|MicroMessenger|Snapchat|Twitter/i.test(UA);
-const IS_IOS=/iPad|iPhone|iPod/.test(UA)||(navigator.platform==='MacIntel'&&navigator.maxTouchPoints>1);
-const STANDALONE=!!((window.matchMedia&&matchMedia('(display-mode: standalone)').matches)||navigator.standalone===true);
-const COARSE=!!(window.matchMedia&&matchMedia('(pointer:coarse)').matches);
-const HAS_FTD=!!(window.AnalyserNode&&AnalyserNode.prototype.getFloatTimeDomainData);
-const HAS_FFD=!!(window.AnalyserNode&&AnalyserNode.prototype.getFloatFrequencyData);
-const buzz=()=>{try{if(navigator.vibrate)navigator.vibrate(18);}catch(e){}};
-function tdata(an,buf){
-  if(HAS_FTD){an.getFloatTimeDomainData(buf);return;}
-  const n=buf.length;if(!tdata.b||tdata.b.length<n)tdata.b=new Uint8Array(n);
-  an.getByteTimeDomainData(tdata.b);for(let i=0;i<n;i++)buf[i]=(tdata.b[i]-128)/128;
-}
-function fdata(an,buf){
-  if(HAS_FFD){an.getFloatFrequencyData(buf);return;}
-  const n=buf.length;if(!fdata.b||fdata.b.length<n)fdata.b=new Uint8Array(n);
-  an.getByteFrequencyData(fdata.b);const lo=an.minDecibels,hi=an.maxDecibels;
-  for(let i=0;i<n;i++)buf[i]=fdata.b[i]===0?-140:lo+fdata.b[i]/255*(hi-lo);
-}
-function mkPan(c,v){if(c.createStereoPanner){const n=c.createStereoPanner();n.pan.value=v;return n;}return c.createGain();}
-function decode(ab){
-  return new Promise((res,rej)=>{
-    try{const pr=ctx.decodeAudioData(ab,res,rej);if(pr&&pr.catch)pr.catch(rej);}catch(e){rej(e);}
-  });
-}
-const store={
-  get(k,d){try{const v=localStorage.getItem(k);return v?JSON.parse(v):d;}catch(e){return d;}},
-  set(k,v){try{localStorage.setItem(k,JSON.stringify(v));}catch(e){}}
-};
-const fmtT=s=>{s=Math.max(0,s||0);const m=Math.floor(s/60);const r=Math.floor(s%60);return m+':'+String(r).padStart(2,'0');};
-const fmtRec=s=>{const m=Math.floor(s/60);const r=s-m*60;return String(m).padStart(2,'0')+':'+(r<10?'0':'')+r.toFixed(1);};
-let toastT=0;
-function toast(msg){const t=$('#toast');t.firstElementChild.textContent=msg;t.classList.add('show');clearTimeout(toastT);toastT=setTimeout(()=>t.classList.remove('show'),3200);}
-
-/* ---------- parameter model ---------- */
-const MODS=[
-  {id:'input',title:'Input',tog:false},
-  {id:'eq',title:'Equalizer',tog:true},
-  {id:'comp',title:'Compressor',tog:true},
-  {id:'sat',title:'Warmth',tog:true},
-  {id:'chorus',title:'Chorus',tog:true},
-  {id:'delay',title:'Echo',tog:true},
-  {id:'reverb',title:'Reverb',tog:true},
-  {id:'output',title:'Output',tog:false}
-];
-const P=[
-  {id:'inGain',mod:'input',label:'Gain',min:-12,max:30,def:0,step:.5,fmt:'db',session:1},
-  {id:'lowCut',mod:'input',label:'Low cut',min:20,max:400,def:80,curve:'log',fmt:'hz'},
-  {id:'gateThr',mod:'input',label:'Gate',min:-80,max:-20,def:-80,step:1,fmt:'gate',session:1},
-  {id:'eqLow',mod:'eq',label:'Low',min:-12,max:12,def:0,step:.5,fmt:'db',off:0},
-  {id:'eqLM',mod:'eq',label:'Lo-mid',min:-12,max:12,def:0,step:.5,fmt:'db',off:0},
-  {id:'eqLMF',mod:'eq',label:'Lo-mid freq',min:150,max:1000,def:350,curve:'log',fmt:'hz'},
-  {id:'eqHM',mod:'eq',label:'Hi-mid',min:-12,max:12,def:0,step:.5,fmt:'db',off:0},
-  {id:'eqHMF',mod:'eq',label:'Hi-mid freq',min:1500,max:8000,def:3500,curve:'log',fmt:'hz'},
-  {id:'eqAir',mod:'eq',label:'Air',min:-12,max:12,def:0,step:.5,fmt:'db',off:0},
-  {id:'compThr',mod:'comp',label:'Threshold',min:-60,max:0,def:0,step:.5,fmt:'db',off:0},
-  {id:'compRatio',mod:'comp',label:'Ratio',min:1,max:20,def:1,step:.1,fmt:'ratio',off:1},
-  {id:'compAtk',mod:'comp',label:'Attack',min:1,max:100,def:10,curve:'log',fmt:'ms'},
-  {id:'compRel',mod:'comp',label:'Release',min:20,max:1000,def:150,curve:'log',fmt:'ms'},
-  {id:'compMk',mod:'comp',label:'Makeup',min:0,max:18,def:0,step:.5,fmt:'db',off:0},
-  {id:'satDrive',mod:'sat',label:'Drive',min:0,max:100,def:0,step:1,fmt:'pct'},
-  {id:'satMix',mod:'sat',label:'Mix',min:0,max:100,def:0,step:1,fmt:'pct',off:0},
-  {id:'chRate',mod:'chorus',label:'Rate',min:.1,max:6,def:.8,curve:'log',fmt:'rate'},
-  {id:'chDepth',mod:'chorus',label:'Depth',min:0,max:100,def:40,step:1,fmt:'pct'},
-  {id:'chMix',mod:'chorus',label:'Mix',min:0,max:100,def:0,step:1,fmt:'pct',off:0},
-  {id:'dlTime',mod:'delay',label:'Time',min:30,max:1000,def:300,curve:'log',fmt:'ms'},
-  {id:'dlFb',mod:'delay',label:'Repeats',min:0,max:90,def:25,step:1,fmt:'pct'},
-  {id:'dlTone',mod:'delay',label:'Tone',min:800,max:12000,def:5000,curve:'log',fmt:'hz'},
-  {id:'dlMix',mod:'delay',label:'Mix',min:0,max:100,def:0,step:1,fmt:'pct',off:0},
-  {id:'rvDecay',mod:'reverb',label:'Decay',min:.3,max:6,def:1.5,curve:'log',fmt:'s'},
-  {id:'rvPre',mod:'reverb',label:'Pre-delay',min:0,max:150,def:15,step:1,fmt:'ms'},
-  {id:'rvDamp',mod:'reverb',label:'Bright',min:1500,max:16000,def:8000,curve:'log',fmt:'hz'},
-  {id:'rvMix',mod:'reverb',label:'Mix',min:0,max:100,def:0,step:1,fmt:'pct',off:0},
-  {id:'outLevel',mod:'output',label:'Level',min:-24,max:6,def:0,step:.5,fmt:'db',session:1}
-];
-const PID={};P.forEach(p=>PID[p.id]=p);
-const F={
-  db:v=>(v>0?'+':'')+v.toFixed(1)+' dB',
-  hz:v=>v>=1000?(v/1000).toFixed(v>=10000?1:2)+' kHz':Math.round(v)+' Hz',
-  ms:v=>Math.round(v)+' ms',
-  s:v=>v.toFixed(1)+' s',
-  pct:v=>Math.round(v)+'%',
-  ratio:v=>v<=1.05?'Off':v.toFixed(1)+':1',
-  rate:v=>v.toFixed(1)+' Hz',
-  gate:v=>v<=-80?'Off':Math.round(v)+' dB'
-};
-const FACTORY=[
-  {id:'spotlight',name:'Spotlight',desc:'Forward, bright lead vocal',color:'#ffd36b',
-   v:{lowCut:90,eqLow:-1,eqLM:-2.5,eqLMF:320,eqHM:3,eqHMF:3600,eqAir:3.5,compThr:-22,compRatio:4,compAtk:8,compRel:120,compMk:5,satDrive:20,satMix:20,chRate:.7,chDepth:30,chMix:0,dlTime:110,dlFb:12,dlTone:4500,dlMix:8,rvDecay:1.4,rvPre:20,rvDamp:9000,rvMix:14}},
-  {id:'super',name:'Super Studio',desc:'Polished, radio-ready sheen',color:'#6ad7ff',
-   v:{lowCut:100,eqLow:1.5,eqLM:-3,eqLMF:280,eqHM:2.5,eqHMF:4000,eqAir:4.5,compThr:-26,compRatio:5,compAtk:4,compRel:90,compMk:7,satDrive:30,satMix:25,chRate:.6,chDepth:30,chMix:8,dlTime:250,dlFb:20,dlTone:6000,dlMix:10,rvDecay:1.8,rvPre:25,rvDamp:11000,rvMix:13}},
-  {id:'wave',name:'New Wave',desc:'Lush chorus, big echo, wide space',color:'#ff6fb5',
-   v:{lowCut:140,eqLow:-2,eqLM:-4,eqLMF:300,eqHM:4,eqHMF:4500,eqAir:5,compThr:-20,compRatio:3,compAtk:12,compRel:140,compMk:4,satDrive:12,satMix:15,chRate:.9,chDepth:60,chMix:42,dlTime:375,dlFb:38,dlTone:5500,dlMix:26,rvDecay:2.8,rvPre:30,rvDamp:10000,rvMix:30}},
-  {id:'soul',name:'Old Soul',desc:'Warm, tape-soft, vintage room',color:'#e8924f',
-   v:{lowCut:70,eqLow:3,eqLM:1.5,eqLMF:380,eqHM:-1.5,eqHMF:3000,eqAir:-3,compThr:-20,compRatio:3,compAtk:22,compRel:220,compMk:4,satDrive:50,satMix:40,chRate:.5,chDepth:20,chMix:0,dlTime:140,dlFb:18,dlTone:3200,dlMix:14,rvDecay:1.2,rvPre:10,rvDamp:4800,rvMix:18}},
-  {id:'clean',name:'Clean Voice',desc:'Noise removed, voice clear over your music',color:'#7be0a8',noise:2,
-   v:{lowCut:120,eqLow:-1,eqLM:-3,eqLMF:300,eqHM:2.5,eqHMF:3200,eqAir:0,compThr:-24,compRatio:3,compAtk:10,compRel:160,compMk:3,satDrive:10,satMix:10,chRate:.8,chDepth:30,chMix:0,dlTime:200,dlFb:15,dlTone:4000,dlMix:0,rvDecay:.8,rvPre:10,rvDamp:6000,rvMix:4}}
-];
-
-/* ---------- state ---------- */
-const state={values:{},on:{},bypass:false};
-P.forEach(p=>state.values[p.id]=p.def);
-MODS.forEach(m=>{if(m.tog)state.on[m.id]=true;});
-let cur={id:'spotlight',dirty:false};
-let custom=store.get('psb.custom.v1',[]);
-if(!Array.isArray(custom))custom=[];
-let mode=IN_ARTIFACT?'file':'mic';
-let powered=false;
-const knobs={};
-const modEls={};
-
-function eff(p){
-  const off=(state.on[p.mod]===false)||(state.bypass&&p.mod!=='input'&&p.mod!=='output');
-  return (off&&p.off!==undefined)?p.off:state.values[p.id];
-}
-
-/* ---------- audio engine ---------- */
-let ctx=null;
-const E={ready:false};
-let lastK=-1,lastDecay=0,irTimer=0,irSet=false;
-const scope={cv:null,g:null,w:1,h:1,dpr:1,spec:null,eq:null,eqFrames:30,fbuf:null};
-
-function makeIR(decay){
-  const sr=ctx.sampleRate;
-  const len=Math.max(1,Math.floor(sr*Math.min(decay*1.3,8)));
-  const buf=ctx.createBuffer(2,len,sr);
-  for(let c=0;c<2;c++){
-    const d=buf.getChannelData(c);let lp=0;
-    for(let i=0;i<len;i++){
-      const t=i/sr;
-      const env=Math.exp(-6.9*t/decay)*Math.min(1,t/0.004);
-      lp+=((Math.random()*2-1)-lp)*0.55;
-      d[i]=lp*env;
-    }
-  }
-  return buf;
-}
-function setSat(k){
-  if(Math.abs(k-lastK)<0.01)return;lastK=k;
-  const n=2048,c=new Float32Array(n),b=0.05,den=Math.tanh(k*0.35),off=Math.tanh(k*b);
-  for(let i=0;i<n;i++){const x=i*2/(n-1)-1;c[i]=(Math.tanh(k*(x+b))-off)/den;}
-  E.shaper.curve=c;
-}
-function buildEngine(){
-  const AC=window.AudioContext||window.webkitAudioContext;
-  if(!AC)return false;
-  try{ctx=new AC({latencyHint:'interactive'});}catch(e){try{ctx=new AC();}catch(e2){return false;}}
-  const c=ctx;
-  const g=()=>c.createGain();
-  const bq=(type,f,q)=>{const n=c.createBiquadFilter();n.type=type;n.frequency.value=f;if(q!=null)n.Q.value=q;return n;};
-  E.inBus=g();E.inGain=g();
-  E.inAn=c.createAnalyser();E.inAn.fftSize=2048;E.inAn.smoothingTimeConstant=0;
-  E.hpf=bq('highpass',80,0.707);
-  E.gateAn=c.createAnalyser();E.gateAn.fftSize=512;E.gateAn.smoothingTimeConstant=0;
-  E.gate=g();
-  E.eqLow=bq('lowshelf',100);E.eqLM=bq('peaking',350,1.1);E.eqHM=bq('peaking',3500,1.1);E.eqAir=bq('highshelf',10000);
-  E.comp=c.createDynamicsCompressor();E.comp.knee.value=8;
-  E.makeup=g();
-  E.satIn=g();E.satDry=g();E.satPre=g();E.shaper=c.createWaveShaper();E.shaper.oversample='2x';E.satPost=g();E.satWet=g();E.satOut=g();
-  E.mixBus=g();
-  E.chD1=c.createDelay(0.05);E.chD2=c.createDelay(0.05);
-  E.chD1.delayTime.value=0.018;E.chD2.delayTime.value=0.024;
-  E.chP1=mkPan(c,-0.8);E.chP2=mkPan(c,0.8);
-  E.chWet=g();
-  E.lfo=c.createOscillator();E.lfo.frequency.value=0.8;E.lfoG1=g();E.lfoG2=g();
-  E.dl=c.createDelay(1.2);E.dlTone=bq('lowpass',5000,0.707);E.dlFb=g();E.dlWet=g();
-  E.rvPre=c.createDelay(0.2);E.conv=c.createConvolver();E.rvDamp=bq('lowpass',8000,0.707);E.rvWet=g();
-  E.mixOut=g();E.outGain=g();
-  E.limiter=c.createDynamicsCompressor();
-  E.limiter.threshold.value=-2;E.limiter.knee.value=0;E.limiter.ratio.value=20;E.limiter.attack.value=0.002;E.limiter.release.value=0.08;
-  E.master=g();
-  E.outAn=c.createAnalyser();E.outAn.fftSize=4096;E.outAn.smoothingTimeConstant=0.72;E.outAn.minDecibels=-100;E.outAn.maxDecibels=-10;
-  E.monGain=g();
-  E.recMix=g();E.recDest=c.createMediaStreamDestination();
-  E.backGain=g();E.backPrint=g();E.backDelay=c.createDelay(0.5);
-  E.takeGain=g();
-
-  E.inBus.connect(E.inGain);E.inGain.connect(E.inAn);
-  E.inGain.connect(E.hpf);E.hpf.connect(E.gateAn);E.hpf.connect(E.gate);
-  E.gate.connect(E.eqLow);E.eqLow.connect(E.eqLM);E.eqLM.connect(E.eqHM);E.eqHM.connect(E.eqAir);
-  E.eqAir.connect(E.comp);E.comp.connect(E.makeup);E.makeup.connect(E.satIn);
-  E.satIn.connect(E.satDry);E.satDry.connect(E.satOut);
-  E.satIn.connect(E.satPre);E.satPre.connect(E.shaper);E.shaper.connect(E.satPost);E.satPost.connect(E.satWet);E.satWet.connect(E.satOut);
-  E.satOut.connect(E.mixBus);
-  E.satOut.connect(E.chD1);E.satOut.connect(E.chD2);
-  E.chD1.connect(E.chP1);E.chD2.connect(E.chP2);E.chP1.connect(E.chWet);E.chP2.connect(E.chWet);E.chWet.connect(E.mixBus);
-  E.lfo.connect(E.lfoG1);E.lfo.connect(E.lfoG2);E.lfoG1.connect(E.chD1.delayTime);E.lfoG2.connect(E.chD2.delayTime);E.lfo.start();
-  E.mixBus.connect(E.mixOut);
-  E.mixBus.connect(E.dl);E.dl.connect(E.dlTone);E.dlTone.connect(E.dlFb);E.dlFb.connect(E.dl);E.dlTone.connect(E.dlWet);E.dlWet.connect(E.mixOut);
-  E.mixBus.connect(E.rvPre);E.dlTone.connect(E.rvPre);
-  E.rvPre.connect(E.conv);E.conv.connect(E.rvDamp);E.rvDamp.connect(E.rvWet);E.rvWet.connect(E.mixOut);
-  E.mixOut.connect(E.outGain);E.outGain.connect(E.limiter);E.limiter.connect(E.master);
-  E.master.connect(E.outAn);
-  if(c.createStereoPanner){E.monPan=c.createStereoPanner();E.backPan=c.createStereoPanner();}
-  E.master.connect(E.monGain);E.monGain.connect(E.monPan||c.destination);if(E.monPan)E.monPan.connect(c.destination);
-  E.master.connect(E.recMix);
-  E.backGain.connect(E.backPan||c.destination);if(E.backPan)E.backPan.connect(c.destination);
-  E.backGain.connect(E.backPrint);E.backPrint.connect(E.backDelay);E.backDelay.connect(E.recMix);
-  E.recMix.connect(E.recDest);
-  E.takeGain.connect(c.destination);
-  E.gBuf=new Float32Array(E.gateAn.fftSize);
-  E.inBuf=new Float32Array(E.inAn.fftSize);
-  E.outBuf=new Float32Array(E.outAn.fftSize);
-  scope.fbuf=new Float32Array(E.outAn.frequencyBinCount);
-  E.gateOpen=true;E.lastAbove=0;
-  E.ready=true;
-  return true;
-}
-const setT=(ap,v,t)=>{ap.setTargetAtTime(v,ctx.currentTime,t||0.025);};
-function applyAll(){
-  if(!E.ready)return;
-  const v=id=>eff(PID[id]);
-  setT(E.inGain.gain,dbToGain(v('inGain')));
-  setT(E.hpf.frequency,v('lowCut'));
-  setT(E.eqLow.gain,v('eqLow'),0.015);
-  setT(E.eqLM.gain,v('eqLM'),0.015);setT(E.eqLM.frequency,v('eqLMF'),0.015);
-  setT(E.eqHM.gain,v('eqHM'),0.015);setT(E.eqHM.frequency,v('eqHMF'),0.015);
-  setT(E.eqAir.gain,v('eqAir'),0.015);
-  E.comp.threshold.setTargetAtTime(v('compThr'),ctx.currentTime,0.02);
-  E.comp.ratio.setTargetAtTime(v('compRatio'),ctx.currentTime,0.02);
-  E.comp.attack.setTargetAtTime(v('compAtk')/1000,ctx.currentTime,0.02);
-  E.comp.release.setTargetAtTime(v('compRel')/1000,ctx.currentTime,0.02);
-  setT(E.makeup.gain,dbToGain(v('compMk')));
-  const d=v('satDrive')/100,m=v('satMix')/100;
-  setSat(1+d*7);
-  E.satPost.gain.value=0.35;E.satPre.gain.value=1;
-  setT(E.satDry.gain,1-m);setT(E.satWet.gain,m);
-  setT(E.lfo.frequency,v('chRate'));
-  const dep=v('chDepth')/100*0.006;
-  setT(E.lfoG1.gain,dep);setT(E.lfoG2.gain,-dep);
-  setT(E.chWet.gain,v('chMix')/100);
-  setT(E.dl.delayTime,v('dlTime')/1000,0.05);
-  setT(E.dlFb.gain,v('dlFb')/100*0.92);
-  setT(E.dlTone.frequency,v('dlTone'));
-  setT(E.dlWet.gain,v('dlMix')/100);
-  setT(E.rvPre.delayTime,v('rvPre')/1000);
-  setT(E.rvDamp.frequency,v('rvDamp'));
-  setT(E.rvWet.gain,v('rvMix')/100*0.8);
-  const dec=v('rvDecay');
-  if(!irSet){E.conv.buffer=makeIR(dec);lastDecay=dec;irSet=true;}
-  else if(Math.abs(dec-lastDecay)>0.02){lastDecay=dec;clearTimeout(irTimer);irTimer=setTimeout(()=>{E.conv.buffer=makeIR(dec);},120);}
-  setT(E.outGain.gain,dbToGain(v('outLevel')));
-  scope.eqFrames=30;
-}
-function applyMonitor(){
-  if(!E.ready)return;
-  const on=(mode==='file')||monitorOn;
-  setT(E.monGain.gain,on?1:0,0.03);applySplit();
-}
-const NR_SRC=`class NR extends AudioWorkletProcessor{
-  constructor(opts){
-    super();const po=(opts&&opts.processorOptions)||{};
-    const N=512;this.N=N;this.H=128;this.on=!!po.on;this.alpha=po.alpha||3;this.floor=po.floor||0.03;
-    this.win=new Float32Array(N);for(let i=0;i<N;i++)this.win[i]=0.5-0.5*Math.cos(2*Math.PI*(i+0.5)/N);
-    this.fr=new Float32Array(N);this.acc=new Float32Array(N);
-    this.re=new Float32Array(N);this.im=new Float32Array(N);
-    const B=N/2+1;
-    this.noise=new Float32Array(B);this.ps=new Float32Array(B);this.g=new Float32Array(B).fill(1);this.raw=new Float32Array(B);
-    this.cnt=0;
-    this.cs=new Float32Array(N/2);this.sn=new Float32Array(N/2);
-    for(let i=0;i<N/2;i++){this.cs[i]=Math.cos(2*Math.PI*i/N);this.sn[i]=-Math.sin(2*Math.PI*i/N);}
-    this.rev=new Uint16Array(N);let bits=Math.log2(N);
-    for(let i=0;i<N;i++){let r=0;for(let b=0;b<bits;b++)if(i&(1<<b))r|=1<<(bits-1-b);this.rev[i]=r;}
-    this.port.onmessage=e=>{
-      const m=e.data||{};
-      if(typeof m.alpha==='number')this.alpha=m.alpha;
-      if(typeof m.floor==='number')this.floor=m.floor;
-      if(typeof m.on==='boolean'&&m.on!==this.on){this.on=m.on;this.fr.fill(0);this.acc.fill(0);this.g.fill(1);this.cnt=0;}
-    };
-  }
-  fft(re,im){
-    const N=this.N,rev=this.rev;
-    for(let i=0;i<N;i++){const j=rev[i];if(j>i){let t=re[i];re[i]=re[j];re[j]=t;t=im[i];im[i]=im[j];im[j]=t;}}
-    for(let size=2;size<=N;size<<=1){
-      const half=size>>1,step=N/size;
-      for(let s=0;s<N;s+=size){
-        for(let k=0,t=0;k<half;k++,t+=step){
-          const a=s+k,b=a+half,wr=this.cs[t],wi=this.sn[t];
-          const xr=re[b]*wr-im[b]*wi,xi=re[b]*wi+im[b]*wr;
-          re[b]=re[a]-xr;im[b]=im[a]-xi;re[a]+=xr;im[a]+=xi;
-        }
-      }
-    }
-  }
-  process(inputs,outputs){
-    const inp=inputs[0],out=outputs[0];
-    if(!out||!out.length)return true;
-    if(!inp||!inp.length||!inp[0]){for(let c=0;c<out.length;c++)out[c].fill(0);return true;}
-    const x=inp[0];
-    if(!this.on||x.length!==this.H){
-      for(let c=0;c<out.length;c++)out[c].set(inp[Math.min(c,inp.length-1)]);
-      return true;
-    }
-    const N=this.N,H=this.H,B=N/2+1,re=this.re,im=this.im,win=this.win,fr=this.fr,acc=this.acc;
-    fr.copyWithin(0,H);fr.set(x,N-H);
-    for(let i=0;i<N;i++){re[i]=fr[i]*win[i];im[i]=0;}
-    this.fft(re,im);
-    const raw=this.raw,ps=this.ps,noise=this.noise,g=this.g,alpha=this.alpha,floor=this.floor;
-    const warm=this.cnt<40;
-    for(let k=0;k<B;k++){
-      const p=re[k]*re[k]+im[k]*im[k];
-      ps[k]=0.5*ps[k]+0.5*p;
-      if(warm){noise[k]=(noise[k]*this.cnt+ps[k])/(this.cnt+1);}
-      else{let n=noise[k];n+=(ps[k]-n)*(ps[k]<n*3?0.01:0.0003);noise[k]=n<1e-12?1e-12:n;}
-      const r=1-alpha*noise[k]/(ps[k]+1e-12);
-      raw[k]=r>0?Math.max(floor,Math.sqrt(r)):floor;
-    }
-    this.cnt++;
-    for(let k=0;k<B;k++){
-      const a=raw[k>0?k-1:0],b=raw[k],c=raw[k<B-1?k+1:B-1];
-      const t=0.25*a+0.5*b+0.25*c;
-      g[k]=t>g[k]?0.5*g[k]+0.5*t:0.7*g[k]+0.3*t;
-    }
-    for(let k=0;k<B;k++){
-      const gk=g[k];re[k]*=gk;im[k]*=gk;
-      if(k>0&&k<N/2){re[N-k]*=gk;im[N-k]*=gk;}
-    }
-    for(let i=0;i<N;i++)im[i]=-im[i];
-    this.fft(re,im);
-    const sc=1/(N*1.5);
-    for(let i=0;i<N;i++)acc[i]+=re[i]*sc*win[i];
-    const o0=out[0];
-    for(let i=0;i<H;i++)o0[i]=acc[i];
-    for(let c=1;c<out.length;c++)out[c].set(o0);
-    acc.copyWithin(0,H);acc.fill(0,N-H);
-    return true;
-  }
-}
-registerProcessor('tonix-nr',NR);
-`;
-async function initNR(){
-  try{
-    if(!ctx.audioWorklet||typeof AudioWorkletNode==='undefined')return;
-    const url=URL.createObjectURL(new Blob([NR_SRC],{type:'text/javascript'}));
-    await ctx.audioWorklet.addModule(url);
-    const n=new AudioWorkletNode(ctx,'tonix-nr',{numberOfInputs:1,numberOfOutputs:1,outputChannelCount:[1],processorOptions:{on:false,alpha:3,floor:0.03}});
-    E.inBus.disconnect(E.inGain);E.inBus.connect(n);n.connect(E.inGain);E.nr=n;applyNR();
-  }catch(e){E.nr=null;}
-}
-function applyNR(){if(E.nr)E.nr.port.postMessage({on:noiseLvl>=2&&mode==='mic'});}
-let monitorOn=true;
-let takePrefix='Take';
-let splitMode=0;try{const v=localStorage.getItem('psb.split.v1');if(v!==null&&+v>=0&&+v<=2)splitMode=+v;}catch(e){}
-function applySplit(){if(!E.monPan||!E.backPan)return;const t=splitMode===1?-1:splitMode===2?1:0;setT(E.backPan.pan,t,0.03);setT(E.monPan.pan,-t,0.03);}
-function savedMic(){try{return localStorage.getItem('psb.mic.v1')||'';}catch(e){return '';}}
-function savePow(v){try{localStorage.setItem('psb.power.v1',v?'1':'0');}catch(e){}}
-let noiseLvl=2,nf=0.002;try{const v=localStorage.getItem('psb.noise.v1');if(v!==null&&+v>=0&&+v<=2)noiseLvl=+v;}catch(e){}
-
-/* gate detector */
-setInterval(()=>{
-  if(!E.ready||ctx.state!=='running')return;
-  let thr=state.values.gateThr;
-  if(thr<=-80&&noiseLvl<2){if(!E.gateOpen){E.gateOpen=true;setT(E.gate.gain,1,0.01);}return;}
-  tdata(E.gateAn,E.gBuf);
-  let m=0;for(let i=0;i<E.gBuf.length;i++){const a=Math.abs(E.gBuf[i]);if(a>m)m=a;}
-  if(noiseLvl>=2){nf=m<nf?Math.max(m,1e-4):Math.min(nf*1.0003,0.003);thr=Math.max(thr,toDb(nf)+10);}
-  const now=performance.now();
-  if(toDb(m)>thr){E.lastAbove=now;if(!E.gateOpen){E.gateOpen=true;setT(E.gate.gain,1,0.004);}}
-  else if(E.gateOpen&&now-E.lastAbove>140){E.gateOpen=false;setT(E.gate.gain,noiseLvl>=2?0.01:0.03,0.07);}
-},10);
-
-/* ---------- file players (decoded, so they sync with the recorder) ---------- */
-function Player(out){
-  this.out=out;this.buffer=null;this.name='';this.src=null;this.offset=0;this.t0=0;this.playing=false;this.onend=null;
-}
-Player.prototype.load=async function(file){
-  const ab=await file.arrayBuffer();
-  this.stop();
-  this.buffer=await decode(ab);
-  this.name=file.name;this.offset=0;
-};
-Player.prototype.pos=function(){
-  if(!this.buffer)return 0;
-  return this.playing?Math.min(this.buffer.duration,this.offset+(ctx.currentTime-this.t0)):this.offset;
-};
-Player.prototype.play=function(){
-  if(!this.buffer||this.playing)return;
-  if(this.offset>=this.buffer.duration-0.05)this.offset=0;
-  const s=ctx.createBufferSource();s.buffer=this.buffer;s.connect(this.out);
-  this.src=s;this.t0=ctx.currentTime;this.playing=true;
-  const me=this;
-  s.onended=function(){if(me.src===s){me.playing=false;me.src=null;me.offset=0;if(me.onend)me.onend();}};
-  s.start(0,this.offset);
-};
-Player.prototype.pause=function(){
-  if(!this.playing)return;
-  this.offset=this.pos();
-  const s=this.src;this.src=null;this.playing=false;
-  try{s.onended=null;s.stop();}catch(e){}
-};
-Player.prototype.stop=function(){
-  const s=this.src;this.src=null;this.playing=false;this.offset=0;
-  if(s){try{s.onended=null;s.stop();}catch(e){}}
-};
-Player.prototype.seek=function(t){
-  const was=this.playing;
-  if(was)this.pause();
-  this.offset=clamp(t,0,this.buffer?this.buffer.duration:0);
-  if(was)this.play();
-};
-let filePlayer=null,backing=null;
-
-/* ---------- microphone ---------- */
-const mic={stream:null,src:null};
-const ui={};
-['stLed','stText','bypass','power','powerTxt','scope','mIn','mOut','mGr','vIn','vOut','vGr','modeMic','modeFile','micBox','fileBox','devSel','outSel','outNote','outField','fileIn','fileName','filePlay','fileSeek','fileTime','srcNote','rec','timer','recState','monRow','micNow','thDark','thSys','thLight','wmPod','wmMus','wmNote','splitRow','splitOff','splitL','splitR','noiseOff','noiseStd','noiseMax','monitor','lastPlay','camPanel','install','installNote','camState','camVid','camOff','camToggle','camFlip','camStage','camSel','camSave','camMirror','camNote','stage','stageVid','stagePreset','stageTimer','stageMeter','stageRec','stageExit','watch','watchVid','watchTitle','watchClose','backIn','backName','backPlay','backSeek','backTime','backVol','backVolV','backOff','backOffV','backPrint','pads','chips','saveForm','presetName','presetState','rack','takes','takesEmpty'].forEach(id=>ui[id]=document.getElementById(id));
-
-function setNote(text,kind){ui.srcNote.textContent=text||'';ui.srcNote.className='note'+(kind?' '+kind:'');}
-function micError(e){
-  const n=e&&e.name;
-  if(IN_APP&&!IN_ARTIFACT)return 'This in-app browser blocks the microphone. Open this page in Safari or Chrome instead.';
-  if(IN_ARTIFACT)return 'Live microphone input is blocked inside this preview. Load a vocal file to hear the presets and record the result, or run the standalone version to sing live.';
-  if(n==='NotAllowedError'||n==='SecurityError')return 'Microphone access was denied. Allow it in your browser’s site settings, then press Power on again.';
-  if(n==='NotFoundError'||n==='OverconstrainedError')return 'No microphone found. Plug in or pair your wireless mic’s receiver, then press Power on again.';
-  if(n==='NotReadableError')return 'Another app is using that microphone. Close it and try again.';
-  if(n==='NotSupportedError')return 'This page needs https:// (or localhost) before the browser will offer the microphone.';
-  return 'The microphone could not start ('+(n||'unknown error')+').';
-}
-let knownOuts=null;
-async function refreshDevices(selId,camId){
-  if(!navigator.mediaDevices||!navigator.mediaDevices.enumerateDevices)return;
-  let list;try{list=await navigator.mediaDevices.enumerateDevices();}catch(e){return;}
-  const fill=(sel,items,pick,label)=>{
-    const keep=pick!=null?pick:sel.value;
-    sel.textContent='';
-    const d=el('option',null,'System default');d.value='';sel.appendChild(d);
-    items.forEach((it,i)=>{if(it.deviceId==='default'||it.deviceId==='communications')return;const o=el('option',null,it.label||(label+' '+(i+1)));o.value=it.deviceId;sel.appendChild(o);});
-    sel.value=[...sel.options].some(o=>o.value===keep)?keep:'';
-  };
-  fill(ui.devSel,list.filter(d=>d.kind==='audioinput'),selId,'Microphone');
-  fill(ui.camSel,list.filter(d=>d.kind==='videoinput'),camId,'Camera');
-  ui.camFlip.hidden=ui.camSel.options.length<3;
-  const outs=list.filter(d=>d.kind==='audiooutput');
-  const canSink=!!(ctx&&typeof ctx.setSinkId==='function');
-  const named=outs.filter(d=>d.deviceId&&d.deviceId!=='default'&&d.deviceId!=='communications');
-  ui.outField.hidden=false;
-  if(knownOuts!==null){const fresh=named.filter(d=>!knownOuts.includes(d.deviceId));if(fresh.length)toast((fresh[0].label||'New output')+' connected. Choose it under Output to switch.');}
-  knownOuts=named.map(d=>d.deviceId);
-  if(canSink&&named.length>0){fill(ui.outSel,named,savedOut(),'Earbuds');ui.outSel.disabled=false;ui.outNote.textContent='Pick your earbuds or speaker. Your mic stays on the input above.';}
-  else{ui.outSel.disabled=true;ui.outNote.textContent=canSink?'No output list here. Sound goes to your device output, so connect your earbuds to this device and they are used.':"This browser cannot choose the output. Sound goes to your device's output: connect your earbuds and they are used.";}
-}
-function stopMic(){
-  if(mic.src){try{mic.src.disconnect();}catch(e){}}
-  if(mic.stream)mic.stream.getTracks().forEach(t=>t.stop());
-  mic.stream=null;mic.src=null;
-}
-const BT_RE=/bluetooth|airpods|buds|headset|hands.?free|hfp|beats|jabra|bose|\bwh-|\bwf-/i;
-const EXT_RE=/usb|type.?c|lightning|external|line.?in|interface|scarlett|yeti|rode|shure|audio device|wired|wireless|\blav/i;
-function micScore(l){l=l||'';if(BT_RE.test(l))return -10;if(EXT_RE.test(l))return 10;if(/built.?in|internal|iphone|ipad|macbook|microphone array/i.test(l))return 1;return 3;}
-function micChoice(){try{return localStorage.getItem('psb.mic.v1');}catch(e){return null;}}
-function userMicOk(){const c=micChoice();if(c===null)return false;try{return !BT_RE.test(localStorage.getItem('psb.micLabel.v1')||'');}catch(e){return false;}}
-let autoMicTries=0,dcT=0;
-async function autoPickMic(tr){
-  if(userMicOk()||autoMicTries>2)return false;
-  let list;try{list=await navigator.mediaDevices.enumerateDevices();}catch(e){return false;}
-  const ins=list.filter(d=>d.kind==='audioinput'&&d.deviceId&&d.deviceId!=='default'&&d.deviceId!=='communications'&&d.label);
-  let best=null,bs=-99;ins.forEach(d=>{const s=micScore(d.label);if(s>bs){bs=s;best=d;}});
-  if(best&&bs>micScore(tr.label)&&best.deviceId!==tr.getSettings().deviceId){autoMicTries++;ui.devSel.value=best.deviceId;await startMic();return true;}
-  return false;
-}
-function showMic(tr){
-  if(!ui.micNow)return;
-  const l=tr.label||'';const bt=BT_RE.test(l);
-  ui.micNow.className='note'+(bt?' warn':'');
-  ui.micNow.textContent=(l?'Using: '+l:'')+(bt?' \u2014 this is a Bluetooth headset mic. Plug in your USB, Type-C or Lightning mic, or pick it in the list above.':'');
-}
-async function startMic(){
-  stopMic();
-  if(!navigator.mediaDevices||!navigator.mediaDevices.getUserMedia){const e=new Error('unsupported');e.name='NotSupportedError';throw e;}
-  const id=ui.devSel.value||(userMicOk()?savedMic():'');
-  const nr=noiseLvl>=1;
-  const audio={echoCancellation:nr,noiseSuppression:nr,autoGainControl:false,latency:{ideal:0.01}};
-  if(id)audio.deviceId={exact:id};
-  let stream;
-  try{stream=await navigator.mediaDevices.getUserMedia({audio});}
-  catch(e){if(e.name==='OverconstrainedError'&&id){ui.devSel.value='';try{localStorage.removeItem('psb.mic.v1');}catch(x){}return startMic();}throw e;}
-  mic.stream=stream;mic.src=ctx.createMediaStreamSource(stream);mic.src.connect(E.inBus);
-  const tr=stream.getAudioTracks()[0];
-  tr.addEventListener('ended',()=>{if(mic.stream===stream){stopMic();setStatus('warn','Mic disconnected');setNote('The microphone was unplugged or turned off. Reconnect it and choose it again.','warn');}});
-  await refreshDevices(tr.getSettings().deviceId);
-  if(await autoPickMic(tr))return;
-  showMic(tr);
-}
-
-/* ---------- camera ---------- */
-const cam={stream:null};
-function camError(e){
-  const n=e&&e.name;
-  if(IN_APP&&!IN_ARTIFACT)return 'This in-app browser blocks the camera. Open this page in Safari or Chrome instead.';
-  if(IN_ARTIFACT)return 'Camera access is blocked inside this preview. Run the standalone version to use your camera.';
-  if(n==='NotAllowedError'||n==='SecurityError')return 'Camera access was denied. Allow it in your browser\u2019s site settings, then try again.';
-  if(n==='NotFoundError'||n==='OverconstrainedError')return 'No camera found. Plug one in or choose another from the list.';
-  if(n==='NotReadableError')return 'Another app is using that camera. Close it and try again.';
-  if(n==='NotSupportedError')return 'This page needs https:// (or localhost) before the browser will offer the camera.';
-  return 'The camera could not start ('+(n||'unknown error')+').';
-}
-function setCamNote(t,k){ui.camNote.textContent=t||'';ui.camNote.className='note'+(k?' '+k:'');}
-function setCamUI(on){
-  ui.camToggle.setAttribute('aria-pressed',on);ui.camToggle.textContent=on?'Turn off':'Turn on';
-  ui.camOff.hidden=on;ui.camStage.disabled=!on;ui.camState.textContent=on?'Live':'Off';
-}
-function applyMirror(){const t=ui.camMirror.checked?'scaleX(-1)':'';ui.camVid.style.transform=t;ui.stageVid.style.transform=t;}
-async function startCam(){
-  stopCam(true);
-  if(!navigator.mediaDevices||!navigator.mediaDevices.getUserMedia){const e=new Error('unsupported');e.name='NotSupportedError';throw e;}
-  const id=ui.camSel.value;
-  const video={width:{ideal:1920},height:{ideal:1080},frameRate:{ideal:30}};
-  if(id)video.deviceId={exact:id};else video.facingMode='user';
-  let stream;
-  try{stream=await navigator.mediaDevices.getUserMedia({video,audio:false});}
-  catch(e){if(e.name==='OverconstrainedError'&&id){ui.camSel.value='';return startCam();}throw e;}
-  cam.stream=stream;ui.camVid.srcObject=stream;
-  try{await ui.camVid.play();}catch(e){}
-  const tr=stream.getVideoTracks()[0];
-  tr.addEventListener('ended',()=>{if(cam.stream===stream){stopCam();setCamNote('The camera was unplugged or turned off.','warn');}});
-  setCamUI(true);setCamNote('');ensureMic();
-  await refreshDevices(undefined,tr.getSettings().deviceId);
-}
-function ensureMic(){
-  if(!(powered&&mode==='mic'))return;
-  const tr=mic.stream&&mic.stream.getAudioTracks()[0];
-  if(!tr||tr.readyState!=='live')startMic().then(()=>setStatus('live',liveText())).catch(e=>setNote(micError(e),'err'));
-}
-function stopCam(quiet){
-  if(cam.stream)cam.stream.getTracks().forEach(t=>t.stop());
-  cam.stream=null;ui.camVid.srcObject=null;
-  if(!quiet){setCamUI(false);if(!ui.stage.hidden)exitStage();}
-}
-async function enterStage(){
-  if(!cam.stream)return;
-  ui.stageVid.srcObject=cam.stream;ui.stage.hidden=false;fit(mc.stage);applyMirror();
-  try{await ui.stageVid.play();}catch(e){}
-  try{if(ui.stage.requestFullscreen)await ui.stage.requestFullscreen();}catch(e){}
-  ui.stageExit.focus({preventScroll:true});
-}
-function exitStage(){
-  if(document.fullscreenElement){try{document.exitFullscreen();}catch(e){}}
-  ui.stage.hidden=true;ui.stageVid.srcObject=null;
-}
-let watchUrl='';
-async function openWatch(t){
-  let wb;try{wb=await blobOf(t);}catch(e){toast('That take could not be read back.');return;}
-  watchUrl=URL.createObjectURL(wb);ui.watchVid.src=watchUrl;ui.watchTitle.textContent=t.name;ui.watch.hidden=false;
-  ui.watchVid.play().catch(()=>{});ui.watchClose.focus({preventScroll:true});
-}
-function closeWatch(){
-  ui.watchVid.pause();ui.watchVid.removeAttribute('src');ui.watchVid.load();
-  if(watchUrl)URL.revokeObjectURL(watchUrl);watchUrl='';ui.watch.hidden=true;
-}
-function wireCamera(){
-  ui.camToggle.addEventListener('click',()=>{
-    if(cam.stream){stopCam();return;}
-    startCam().catch(e=>{setCamNote(camError(e),'err');stopCam();});
-  });
-  ui.camSel.addEventListener('change',()=>{if(cam.stream)startCam().catch(e=>{setCamNote(camError(e),'err');stopCam();});});
-  ui.camFlip.addEventListener('click',()=>{
-    const opts=[...ui.camSel.options].filter(o=>o.value);if(opts.length<2)return;
-    const i=opts.findIndex(o=>o.value===ui.camSel.value);
-    ui.camSel.value=opts[(i+1)%opts.length].value;
-    if(cam.stream)startCam().catch(e=>{setCamNote(camError(e),'err');stopCam();});
-  });
-  ui.camMirror.addEventListener('change',applyMirror);
-  ui.camStage.addEventListener('click',enterStage);
-  ui.stageExit.addEventListener('click',exitStage);
-  ui.stageRec.addEventListener('click',()=>{R.active?stopRecording():startRecording();});
-  ui.watchClose.addEventListener('click',closeWatch);
-  ui.watch.addEventListener('click',e=>{if(e.target===ui.watch)closeWatch();});
-  document.addEventListener('fullscreenchange',()=>{if(!document.fullscreenElement&&!ui.stage.hidden)exitStage();});
-  document.addEventListener('keydown',e=>{if(e.key==='Escape'){if(!ui.watch.hidden)closeWatch();else if(!ui.stage.hidden)exitStage();}});
-  applyMirror();setCamUI(false);
-  if(IN_ARTIFACT){ui.camToggle.disabled=true;ui.camSel.disabled=true;ui.camSave.disabled=true;setCamNote(camError(),'warn');}
-}
-
-/* ---------- phone behaviour: audio session, interruptions, wake lock ---------- */
-function setAudioSession(){
-  try{if(navigator.audioSession)navigator.audioSession.type=(mode==='mic'||R.active)?'play-and-record':'playback';}catch(e){}
-}
-function unlockAudio(){
-  try{const b=ctx.createBuffer(1,1,22050),s=ctx.createBufferSource();s.buffer=b;s.connect(ctx.destination);s.start(0);}catch(e){}
-}
-let wl=null;
-async function wake(){
-  try{
-    if(navigator.wakeLock&&!wl&&(powered||R.active)&&!document.hidden){
-      wl=await navigator.wakeLock.request('screen');
-      wl.addEventListener('release',()=>{wl=null;});
-    }
-  }catch(e){}
-}
-function unwake(){if(wl){try{wl.release();}catch(e){}wl=null;}}
-let resumeArmed=false;
-function armResume(){
-  if(resumeArmed)return;resumeArmed=true;
-  const h=()=>{resumeArmed=false;document.removeEventListener('pointerdown',h);document.removeEventListener('touchend',h);if(ctx)ctx.resume().catch(()=>{});};
-  document.addEventListener('pointerdown',h);document.addEventListener('touchend',h);
-}
-function onCtxState(){
-  if(!powered)return;
-  if(ctx.state==='running')setStatus('live',liveText());
-  else{setStatus('warn','Paused by the system. Tap to resume.');armResume();}
-}
-function setupPlatform(){
-  if(ctx&&ctx.addEventListener)ctx.addEventListener('statechange',onCtxState);
-  document.addEventListener('visibilitychange',()=>{
-    if(document.hidden)return;
-    wake();
-    if(powered&&ctx&&ctx.state!=='running')ctx.resume().catch(()=>{});
-  });
-  window.addEventListener('beforeunload',e=>{if(R.active){e.preventDefault();e.returnValue='';}});
-  if(IN_ARTIFACT)return;
-  if(IN_APP){setNote(micError(),'warn');}
-  let deferred=null;
-  window.addEventListener('beforeinstallprompt',e=>{e.preventDefault();deferred=e;if(!STANDALONE)ui.install.hidden=false;});
-  ui.install.addEventListener('click',async()=>{
-    if(!deferred)return;deferred.prompt();
-    try{await deferred.userChoice;}catch(e){}
-    deferred=null;ui.install.hidden=true;
-  });
-  window.addEventListener('appinstalled',()=>{ui.install.hidden=true;ui.installNote.hidden=true;});
-  if(IS_IOS&&!STANDALONE&&!IN_APP){
-    ui.installNote.textContent='Install it on your iPhone or iPad: tap the Share button, then Add to Home Screen.';
-    ui.installNote.hidden=false;
-  }
-}
-
-/* ---------- power / status ---------- */
-function setStatus(kind,text){
-  ui.stLed.className='led'+(kind==='live'?' on':kind==='warn'?' amber on':kind==='err'?' err':'');
-  ui.stText.textContent=text;
-}
-function liveText(){
-  const lat=Math.round(((ctx.baseLatency||0)+(ctx.outputLatency||0))*1000);
-  return 'Live · '+(ctx.sampleRate/1000).toFixed(1)+' kHz'+(lat>0?' · ~'+lat+' ms':'');
-}
-async function powerOn(){
-  if(!E.ready)return;
-  unlockAudio();
-  if(ctx.state!=='running')await Promise.race([ctx.resume().catch(()=>{}),new Promise(r=>setTimeout(r,500))]);
-  powered=true;savePow(true);setAudioSession();wake();applySavedOut();
-  ui.power.setAttribute('aria-pressed','true');ui.powerTxt.textContent='Power off';
-  if(mode==='mic'){
-    try{await startMic();setNote('');setStatus('live',liveText());}
-    catch(e){setNote(micError(e),'err');setStatus('warn','No input');}
-  }else setStatus('live',liveText());
-}
-function powerOff(){
-  if(R.active)stopRecording();
-  stopMic();
-  if(filePlayer)filePlayer.pause();
-  if(backing)backing.pause();
-  stopTake();
-  powered=false;savePow(false);unwake();
-  ui.power.setAttribute('aria-pressed','false');ui.powerTxt.textContent='Power on';
-  setStatus('off','Standby');
-  if(ctx)ctx.suspend();
-}
-ui.power.addEventListener('click',()=>{powered?powerOff():powerOn();});
-async function autoPower(){
-  if(IN_ARTIFACT||powered||mode!=='mic')return;
-  let on=false;try{on=localStorage.getItem('psb.power.v1')==='1';}catch(e){}
-  if(!on)return;
-  let ok=false;try{const r=await navigator.permissions.query({name:'microphone'});ok=r.state==='granted';}catch(e){}
-  if(ok)powerOn();
-}
-ui.bypass.addEventListener('click',()=>{state.bypass=!state.bypass;ui.bypass.setAttribute('aria-pressed',state.bypass);applyAll();});
-
-function setMode(m){
-  mode=m;setAudioSession();
-  ui.modeMic.setAttribute('aria-pressed',m==='mic');
-  ui.modeFile.setAttribute('aria-pressed',m==='file');
-  ui.micBox.hidden=m!=='mic';ui.fileBox.hidden=m!=='file';
-  ui.monRow.hidden=m==='file';
-  if(m==='file'){stopMic();setNote(IN_ARTIFACT?micError():'','warn');if(IN_ARTIFACT)ui.srcNote.className='note warn';}
-  else{if(filePlayer)filePlayer.pause();setNote('');if(powered)startMic().then(()=>setStatus('live',liveText())).catch(e=>{setNote(micError(e),'err');setStatus('warn','No input');});}
-  applyMonitor();applyNR();
-}
-ui.modeMic.addEventListener('click',()=>setMode('mic'));
-ui.modeFile.addEventListener('click',()=>setMode('file'));
-ui.devSel.addEventListener('change',()=>{try{localStorage.setItem('psb.mic.v1',ui.devSel.value);localStorage.setItem('psb.micLabel.v1',ui.devSel.options[ui.devSel.selectedIndex]?ui.devSel.options[ui.devSel.selectedIndex].text:'');}catch(e){}if(powered&&mode==='mic')startMic().catch(e=>setNote(micError(e),'err'));});
-function savedOut(){try{return localStorage.getItem('psb.out.v1')||'';}catch(e){return '';}}
-function applySavedOut(){const so=savedOut();if(so&&ctx&&typeof ctx.setSinkId==='function')ctx.setSinkId(so).catch(()=>{});}
-ui.outSel.addEventListener('change',async()=>{try{localStorage.setItem('psb.out.v1',ui.outSel.value);}catch(e){}try{await ctx.setSinkId(ui.outSel.value||'');}catch(e){toast('That output could not be selected.');}});
-if(navigator.mediaDevices&&navigator.mediaDevices.addEventListener)navigator.mediaDevices.addEventListener('devicechange',()=>{refreshDevices();clearTimeout(dcT);dcT=setTimeout(()=>{if(powered&&mode==='mic'&&!R.active&&!userMicOk()){autoMicTries=0;startMic().catch(()=>{});}},700);});
-ui.lastPlay.addEventListener('click',()=>{if(TP.take)stopTake();else if(takes.length)playTake(takes[0],0);});
-setInterval(()=>{ui.lastPlay.disabled=!takes.length;ui.lastPlay.textContent=TP.take?'Stop playback':'Play last take';},300);
-function setNoise(n,restart){noiseLvl=n;[['noiseOff',0],['noiseStd',1],['noiseMax',2]].forEach(([id,k])=>ui[id].setAttribute('aria-pressed',n===k));try{localStorage.setItem('psb.noise.v1',String(n));}catch(e){}applyNR();if(restart&&powered&&mode==='mic')startMic().catch(e=>setNote(micError(e),'err'));}
-ui.noiseOff.addEventListener('click',()=>setNoise(0,true));ui.noiseStd.addEventListener('click',()=>setNoise(1,true));ui.noiseMax.addEventListener('click',()=>setNoise(2,true));
-setNoise(noiseLvl,false);
-function setTheme(t){document.documentElement.dataset.theme=t;[['thDark','dark'],['thSys','system'],['thLight','light']].forEach(([id,k])=>ui[id].setAttribute('aria-pressed',t===k));try{localStorage.setItem('psb.theme.v1',t);}catch(e){}}
-ui.thDark.addEventListener('click',()=>setTheme('dark'));ui.thSys.addEventListener('click',()=>setTheme('system'));ui.thLight.addEventListener('click',()=>setTheme('light'));
-{let t='dark';try{t=localStorage.getItem('psb.theme.v1')||'dark';}catch(e){}setTheme(['dark','system','light'].includes(t)?t:'dark');}
-function setSplit(n){splitMode=n;[['splitOff',0],['splitL',1],['splitR',2]].forEach(([id,k])=>ui[id].setAttribute('aria-pressed',n===k));try{localStorage.setItem('psb.split.v1',String(n));}catch(e){}applySplit();}
-ui.splitOff.addEventListener('click',()=>setSplit(0));ui.splitL.addEventListener('click',()=>setSplit(1));ui.splitR.addEventListener('click',()=>setSplit(2));
-setSplit(splitMode);
-const WORK={
-  pod:{name:'Podcast',pre:'clean',noise:2,split:0,vol:30,print:true,take:'Episode',note:'Podcast: voice first. Clean Voice sound, noise removal on Maximum, hear yourself in your headphones, music bed low under your voice. Takes are saved as Episodes with the bed mixed in.'},
-  mus:{name:'Music',pre:'super',noise:1,split:1,vol:80,print:false,take:'Take',note:'Music: track first. Super Studio sound, gentler noise filter so held notes are not clipped, track in your left ear and your voice in your right. Takes are your voice only, so you can mix them later.'}
-};
-function setMonitor(v){monitorOn=v;ui.monitor.setAttribute('aria-pressed',v);ui.monitor.textContent=v?'On':'Off';applyMonitor();}
-function applyWork(k,user){
-  const w=WORK[k];if(!w)return;
-  ui.wmPod.setAttribute('aria-pressed',k==='pod');ui.wmMus.setAttribute('aria-pressed',k==='mus');
-  ui.wmNote.textContent=w.note;takePrefix=w.take;
-  try{localStorage.setItem('psb.work.v1',k);}catch(e){}
-  if(!user)return;
-  loadPreset(w.pre);if(noiseLvl!==w.noise)setNoise(w.noise,true);setSplit(w.split);setMonitor(true);
-  ui.backVol.value=w.vol;ui.backVol.dispatchEvent(new Event('input'));
-  ui.backPrint.checked=w.print;ui.backPrint.dispatchEvent(new Event('change'));
-  toast(w.name+' mode set.');
-}
-ui.wmPod.addEventListener('click',()=>applyWork('pod',true));ui.wmMus.addEventListener('click',()=>applyWork('mus',true));
-{let k=null;try{k=localStorage.getItem('psb.work.v1');}catch(e){}if(WORK[k])applyWork(k,false);}
-ui.monitor.addEventListener('click',()=>{monitorOn=!monitorOn;ui.monitor.setAttribute('aria-pressed',monitorOn);ui.monitor.textContent=monitorOn?'On':'Off';applyMonitor();});
-
-/* ---------- file + backing UI ---------- */
-function wirePlayer(pl,o){
-  o.load.addEventListener('change',async()=>{
-    const f=o.load.files&&o.load.files[0];if(!f)return;
-    try{
-      o.name.textContent='Decoding…';
-      await pl.load(f);
-      o.name.textContent=pl.name;o.name.title=pl.name;
-      o.play.disabled=false;o.seek.disabled=false;
-      o.seek.value=0;o.time.textContent='0:00 / '+fmtT(pl.buffer.duration);
-      o.play.textContent='Play';
-    }catch(e){o.name.textContent='Could not read that file';toast('That file could not be decoded. Try a WAV, MP3, M4A or OGG.');}
-    o.load.value='';
-  });
-  o.play.addEventListener('click',async()=>{
-    if(!pl.buffer)return;
-    await ctx.resume();
-    if(pl.playing)pl.pause();else pl.play();
-  });
-  o.seek.addEventListener('input',()=>{if(pl.buffer)pl.seek(o.seek.value/1000*pl.buffer.duration);});
-  pl.onend=()=>{o.play.textContent='Play';o.seek.value=0;if(pl.buffer)o.time.textContent='0:00 / '+fmtT(pl.buffer.duration);if(pl===filePlayer&&R.active)tailStop();};
-  o.refresh=()=>{
-    o.play.textContent=pl.playing?'Pause':'Play';
-    if(pl.buffer){const p=pl.pos();if(document.activeElement!==o.seek)o.seek.value=Math.round(p/pl.buffer.duration*1000);o.time.textContent=fmtT(p)+' / '+fmtT(pl.buffer.duration);}
-  };
-}
-const fileUI={load:ui.fileIn,name:ui.fileName,play:ui.filePlay,seek:ui.fileSeek,time:ui.fileTime};
-const backUI={load:ui.backIn,name:ui.backName,play:ui.backPlay,seek:ui.backSeek,time:ui.backTime};
-ui.backVol.addEventListener('input',()=>{ui.backVolV.textContent=ui.backVol.value+'%';if(E.ready)setT(E.backGain.gain,Math.pow(ui.backVol.value/100,1.6),0.02);});
-ui.backOff.addEventListener('input',()=>{ui.backOffV.textContent=ui.backOff.value+' ms';if(E.ready)setT(E.backDelay.delayTime,ui.backOff.value/1000,0.02);});
-ui.backPrint.addEventListener('change',()=>{if(E.ready)setT(E.backPrint.gain,ui.backPrint.checked?1:0,0.02);});
-
-/* ---------- recorder ---------- */
-const R={active:false,rec:null,chunks:[],t0:0,mime:'',video:false,pcm:null,stopTimer:0};
-function pcmStart(){
-  const sp=ctx.createScriptProcessor(4096,2,2),mute=ctx.createGain();mute.gain.value=0;
-  const pc={sp:sp,mute:mute,L:[],R:[],len:0};
-  sp.onaudioprocess=ev=>{
-    const ib=ev.inputBuffer,l=ib.getChannelData(0),r=ib.numberOfChannels>1?ib.getChannelData(1):l;
-    pc.L.push(new Float32Array(l));pc.R.push(new Float32Array(r));pc.len+=l.length;
-  };
-  E.recMix.connect(sp);sp.connect(mute);mute.connect(ctx.destination);
-  R.pcm=pc;
-}
-function pcmFinish(){
-  const pc=R.pcm;R.pcm=null;
-  pc.sp.onaudioprocess=null;
-  try{E.recMix.disconnect(pc.sp);}catch(e){}
-  try{pc.sp.disconnect();pc.mute.disconnect();}catch(e){}
-  const buf=ctx.createBuffer(2,Math.max(1,pc.len),ctx.sampleRate);
-  [pc.L,pc.R].forEach((chunks,c)=>{const d=buf.getChannelData(c);let o=0;chunks.forEach(a=>{d.set(a,o);o+=a.length;});});
-  return wavFromBuffer(buf);
-}
-function pickVideoMime(){
-  const list=['video/webm;codecs=vp9,opus','video/webm;codecs=vp8,opus','video/webm','video/mp4;codecs=avc1.42E01E,mp4a.40.2','video/mp4'];
-  for(const m of list){if(MediaRecorder.isTypeSupported(m))return m;}
-  return '';
-}
-function setRecUI(on){[ui.rec,ui.stageRec].forEach(b=>{b.setAttribute('aria-pressed',on);b.setAttribute('aria-label',on?'Stop recording':'Record');});}
-function pickMime(){
-  if(typeof MediaRecorder==='undefined')return null;
-  const list=['audio/webm;codecs=opus','audio/mp4;codecs=mp4a.40.2','audio/mp4','audio/webm','audio/ogg;codecs=opus'];
-  for(const m of list){if(MediaRecorder.isTypeSupported(m))return m;}
-  return '';
-}
-async function startRecording(){
-  if(R.active||!E.ready)return;
-  const mime=pickMime();
-  const pcm=(mime===null);
-  if(pcm&&!ctx.createScriptProcessor){toast('This browser cannot record audio from a web page.');return;}
-  if(!powered)await powerOn();
-  if(ctx.state!=='running')await ctx.resume();
-  if(mode==='mic'&&!mic.src){toast('No microphone is connected. Check the Source panel.');return;}
-  if(mode==='file'&&!(filePlayer&&filePlayer.buffer)){toast('Load a vocal file first.');return;}
-  const withVideo=!!(!pcm&&cam.stream&&ui.camSave.checked&&cam.stream.getVideoTracks().length);
-  let rec,usedMime=mime;
-  try{
-    if(pcm){pcmStart();}
-    else if(withVideo){
-      const vm=pickVideoMime();usedMime=vm;
-      const ms=new MediaStream(E.recDest.stream.getAudioTracks().concat(cam.stream.getVideoTracks()));
-      rec=new MediaRecorder(ms,vm?{mimeType:vm,audioBitsPerSecond:256000,videoBitsPerSecond:6000000}:undefined);
-    }else rec=new MediaRecorder(E.recDest.stream,mime?{mimeType:mime,audioBitsPerSecond:256000}:undefined);
-  }catch(e){toast('The recorder could not start.');return;}
-  stopTake();
-  R.rec=rec;R.chunks=[];R.video=withVideo;R.mime=pcm?'audio/wav':(rec.mimeType||usedMime||(withVideo?'video/webm':'audio/webm'));
-  if(rec){
-    rec.ondataavailable=ev=>{if(ev.data&&ev.data.size)R.chunks.push(ev.data);};
-    rec.onstop=onRecStop;
-    rec.start(250);
-  }
-  R.t0=performance.now();R.active=true;buzz();setAudioSession();wake();
-  if(mode==='file')filePlayer.play();
-  if(backing&&backing.buffer)backing.play();
-  setRecUI(true);
-  ui.recState.textContent=(mode==='file'?'Printing file through the chain':'Recording')+(withVideo?' with video':'');
-}
-function tailStop(){
-  const v=state.values;
-  const tail=clamp(v.rvDecay*900+(v.dlMix>0?v.dlTime*3:0)+300,1200,8000);
-  ui.recState.textContent='Capturing the tail';
-  clearTimeout(R.stopTimer);R.stopTimer=setTimeout(()=>{if(R.active)stopRecording();},tail);
-}
-function stopRecording(){
-  if(!R.active)return;
-  R.active=false;clearTimeout(R.stopTimer);
-  if(R.pcm){addTake(pcmFinish(),(performance.now()-R.t0)/1000,false);}
-  else{try{R.rec.stop();}catch(e){}}
-  buzz();
-  if(mode==='file'&&filePlayer)filePlayer.stop();
-  if(backing)backing.stop();
-  setRecUI(false);
-  ui.recState.textContent='Ready';
-}
-ui.rec.addEventListener('click',()=>{R.active?stopRecording():startRecording();});
-function onRecStop(){
-  const dur=(performance.now()-R.t0)/1000;
-  if(!R.chunks.length){toast('Nothing was captured.');return;}
-  addTake(new Blob(R.chunks,{type:R.mime}),dur,R.video);
-}
-
-/* ---------- takes ---------- */
-const DB={db:null};
-function idbOpen(){
-  return new Promise(res=>{
-    if(DB.db)return res(true);
-    try{
-      if(!window.indexedDB)return res(false);
-      const r=indexedDB.open('psb',1);
-      r.onupgradeneeded=()=>{r.result.createObjectStore('meta',{keyPath:'id'});r.result.createObjectStore('blobs',{keyPath:'id'});};
-      r.onsuccess=()=>{DB.db=r.result;res(true);};
-      r.onerror=()=>res(false);r.onblocked=()=>res(false);
-    }catch(e){res(false);}
-  });
-}
-function idbReq(stores,mode,fn){
-  return new Promise(res=>{
-    if(!DB.db)return res(null);
-    try{
-      const tx=DB.db.transaction(stores,mode),out=fn(tx);
-      tx.oncomplete=()=>res(out&&out.result!==undefined?out.result:true);
-      tx.onerror=()=>res(null);tx.onabort=()=>res(null);
-    }catch(e){res(null);}
-  });
-}
-const metaOf=t=>({id:t.id,name:t.name,mime:t.mime,size:t.size,dur:t.dur,video:t.video,created:t.created,peaks:t.peaks?Array.from(t.peaks):null});
-async function keepTake(t){
-  if(!DB.db||!t.blob)return;
-  try{
-    const data=await t.blob.arrayBuffer();
-    const ok=await idbReq(['meta','blobs'],'readwrite',tx=>{tx.objectStore('blobs').put({id:t.id,data:data});return tx.objectStore('meta').put(metaOf(t));});
-    if(ok){t.stored=true;if(navigator.storage&&navigator.storage.persist)navigator.storage.persist().catch(()=>{});}
-    else toast('There was not enough room to keep this take on the device. Save it before you close the page.');
-  }catch(e){}
-}
-function idbMeta(t){
-  if(!t.stored||!DB.db)return;
-  clearTimeout(t._mt);t._mt=setTimeout(()=>idbReq('meta','readwrite',tx=>tx.objectStore('meta').put(metaOf(t))),400);
-}
-function idbDelete(t){
-  if(!DB.db)return;
-  idbReq(['meta','blobs'],'readwrite',tx=>{tx.objectStore('blobs').delete(t.id);return tx.objectStore('meta').delete(t.id);});
-}
-async function blobOf(t){
-  if(t.blob)return t.blob;
-  const rec=await idbReq('blobs','readonly',tx=>tx.objectStore('blobs').get(t.id));
-  if(!rec||rec===true)throw new Error('missing');
-  t.blob=new Blob([rec.data],{type:t.mime});return t.blob;
-}
-async function loadTakes(){
-  if(!(await idbOpen()))return;
-  const metas=await idbReq('meta','readonly',tx=>tx.objectStore('meta').getAll());
-  if(!metas||metas===true||!metas.length)return;
-  metas.sort((a,b)=>b.created-a.created);
-  metas.forEach(m=>{
-    takeSeq=Math.max(takeSeq,m.id);
-    const t={id:m.id,name:m.name,blob:null,mime:m.mime,size:m.size,dur:m.dur,video:!!m.video,created:m.created,peaks:m.peaks?Float32Array.from(m.peaks):null,buf:null,ext:extFor(m.mime,m.video),stored:true};
-    takes.push(t);ui.takes.appendChild(buildRow(t));
-  });
-  ui.takesEmpty.hidden=true;
-}
-const takes=[];let takeSeq=0;
-const TP={src:null,take:null,t0:0,off:0};
-function extFor(mime,video){
-  mime=(mime||'').toLowerCase();
-  if(mime.indexOf('wav')>-1)return 'wav';
-  if(mime.indexOf('mp4')>-1)return (IN_ARTIFACT||video)?'mp4':'m4a';
-  if(mime.indexOf('ogg')>-1)return 'ogg';
-  return 'webm';
-}
-async function ensureBuffer(t){
-  if(t.buf)return t.buf;
-  const ab=await (await blobOf(t)).arrayBuffer();
-  t.buf=await decode(ab);
-  return t.buf;
-}
-function dropBuffers(except){takes.forEach(o=>{if(o!==except&&o!==TP.take){o.buf=null;if(o.stored)o.blob=null;}});}
-function peaksOf(buf,n){
-  const out=new Float32Array(n),len=buf.length,step=Math.max(1,Math.floor(len/n));
-  const chs=[];for(let c=0;c<buf.numberOfChannels;c++)chs.push(buf.getChannelData(c));
-  for(let i=0;i<n;i++){let m=0;const s=i*step,e=Math.min(len,s+step);for(let c=0;c<chs.length;c++){const d=chs[c];for(let j=s;j<e;j+=8){const a=Math.abs(d[j]);if(a>m)m=a;}}out[i]=m;}
-  return out;
-}
-function drawWave(t){
-  const cv=t.cv,g=cv.getContext('2d');
-  g.clearRect(0,0,cv.width,cv.height);
-  if(!t.peaks){g.fillStyle='#3b4250';g.fillRect(0,cv.height/2-1,cv.width,2);return;}
-  const n=t.peaks.length,bw=cv.width/n;let mx=0;t.peaks.forEach(p=>{if(p>mx)mx=p;});mx=mx||1;
-  g.fillStyle='#ffb340';
-  for(let i=0;i<n;i++){const h=Math.max(2,t.peaks[i]/mx*(cv.height-8));g.fillRect(i*bw+1,(cv.height-h)/2,Math.max(1,bw-2),h);}
-}
-function takeInfo(t){return fmtT(t.dur)+' · '+(t.video?'VIDEO ':'')+t.ext.toUpperCase()+' · '+((t.size||0)/1048576).toFixed(1)+' MB';}
-function buildRow(t){
-  const row=el('article','take');
-  const play=el('button','btn sm','Play');play.style.minWidth='64px';
-  const meta=el('div','take-meta');
-  const name=el('input','take-name');name.value=t.name;name.maxLength=40;name.setAttribute('aria-label','Take name');
-  name.addEventListener('input',()=>{t.name=name.value.trim()||('Take '+t.id);idbMeta(t);});
-  const info=el('div','take-info',takeInfo(t));
-  meta.append(name,info);
-  const wave=el('div','wave');const cv=el('canvas');cv.width=640;cv.height=72;const prog=el('div','prog');wave.append(cv,prog);
-  const acts=el('div','take-acts');
-  const bOrig=el('button','btn sm',t.ext.toUpperCase());bOrig.title='Save the capture as recorded';
-  const bWav=el('button','btn sm','WAV 24-bit');bWav.title='Save an uncompressed 24-bit WAV';
-  if(IN_ARTIFACT||t.ext==='wav')bWav.hidden=true;
-  const bDel=el('button','btn sm ghost','Delete');
-  if(t.video){const bWatch=el('button','btn sm','Watch');bWatch.addEventListener('click',()=>openWatch(t));acts.append(bWatch);}
-  acts.append(bOrig,bWav,bDel);
-  row.append(play,meta,wave,acts);
-  t.row=row;t.cv=cv;t.prog=prog;t.info=info;t.play=play;
-  play.addEventListener('click',()=>{TP.take===t?stopTake():playTake(t,0);});
-  wave.addEventListener('pointerdown',e=>{const r=wave.getBoundingClientRect();if(t.dur)playTake(t,clamp((e.clientX-r.left)/r.width,0,1)*t.dur);});
-  bOrig.addEventListener('click',async()=>{try{saveBlob(await blobOf(t),safeName(t.name)+'.'+t.ext);}catch(e){toast('That take could not be read back.');}});
-  bWav.addEventListener('click',async()=>{
-    try{bWav.disabled=true;bWav.textContent='Encoding…';const b=await ensureBuffer(t);dropBuffers(t);await saveBlob(wavFromBuffer(b),safeName(t.name)+'.wav');}
-    catch(e){toast('Could not encode the WAV.');}
-    bWav.disabled=false;bWav.textContent='WAV 24-bit';
-  });
-  let arm=0;
-  bDel.addEventListener('click',()=>{
-    if(!arm){arm=setTimeout(()=>{arm=0;bDel.textContent='Delete';},2500);bDel.textContent='Sure?';return;}
-    clearTimeout(arm);if(TP.take===t)stopTake();
-    takes.splice(takes.indexOf(t),1);row.remove();t.buf=null;idbDelete(t);
-    ui.takesEmpty.hidden=takes.length>0;
-  });
-  drawWave(t);
-  return row;
-}
-const safeName=s=>(s||'take').replace(/[^\w\- ]+/g,'').trim().replace(/\s+/g,'-')||'take';
-async function addTake(blob,dur,video){
-  const t={id:++takeSeq,name:takePrefix+' '+(takeSeq),blob,dur,video:!!video,mime:blob.type,size:blob.size,created:Date.now(),stored:false,peaks:null,buf:null,ext:extFor(blob.type,video)};
-  takes.unshift(t);
-  ui.takes.insertBefore(buildRow(t),ui.takes.firstChild);
-  ui.takesEmpty.hidden=true;
-  try{const b=await ensureBuffer(t);t.dur=b.duration;t.peaks=peaksOf(b,160);t.info.textContent=takeInfo(t);drawWave(t);dropBuffers(t);}
-  catch(e){}
-  keepTake(t);
-}
-async function playTake(t,from){
-  stopTake();
-  try{await ctx.resume();const b=await ensureBuffer(t);dropBuffers(t);
-    const s=ctx.createBufferSource();s.buffer=b;s.connect(E.takeGain);
-    TP.src=s;TP.take=t;TP.t0=ctx.currentTime;TP.off=from||0;
-    s.onended=()=>{if(TP.src===s)stopTake();};
-    s.start(0,TP.off);t.play.textContent='Stop';
-  }catch(e){toast('That take could not be played.');}
-}
-function stopTake(){
-  const t=TP.take,s=TP.src;TP.src=null;TP.take=null;
-  if(s){try{s.onended=null;s.stop();}catch(e){}}
-  if(t){t.play.textContent='Play';t.prog.style.setProperty('--p','0%');}
-}
-function wavFromBuffer(buf){
-  const ch=Math.min(2,buf.numberOfChannels),n=buf.length,sr=buf.sampleRate,ba=ch*3,dl=n*ba;
-  const ab=new ArrayBuffer(44+dl),dv=new DataView(ab);
-  const w=(o,s)=>{for(let i=0;i<s.length;i++)dv.setUint8(o+i,s.charCodeAt(i));};
-  w(0,'RIFF');dv.setUint32(4,36+dl,true);w(8,'WAVE');w(12,'fmt ');dv.setUint32(16,16,true);dv.setUint16(20,1,true);dv.setUint16(22,ch,true);
-  dv.setUint32(24,sr,true);dv.setUint32(28,sr*ba,true);dv.setUint16(32,ba,true);dv.setUint16(34,24,true);w(36,'data');dv.setUint32(40,dl,true);
-  const chans=[];for(let c=0;c<ch;c++)chans.push(buf.getChannelData(c));
-  let o=44;
-  for(let i=0;i<n;i++)for(let c=0;c<ch;c++){
-    const s=clamp(chans[c][i],-1,1);const v=Math.round(s<0?s*8388608:s*8388607);
-    dv.setUint8(o,v&255);dv.setUint8(o+1,(v>>8)&255);dv.setUint8(o+2,(v>>16)&255);o+=3;
-  }
-  return new Blob([ab],{type:'audio/wav'});
-}
-async function saveBlob(blob,filename){
-  if(IN_ARTIFACT){
-    try{
-      const dl=await window.claude.use('downloads');
-      if(!dl){toast('Saving is not available in this view.');return;}
-      await dl.save({filename,data:blob});toast('Saved '+filename);
-    }catch(e){
-      const c=e&&e.code;
-      if(c==='declined')return;
-      if(c==='rejected_extension')toast('This browser records a format the preview cannot save. Use the standalone version.');
-      else toast('The file could not be saved ('+(c||'error')+').');
-    }
-    return;
-  }
-  if(COARSE&&navigator.canShare&&navigator.share){
-    try{
-      const f=new File([blob],filename,{type:blob.type||'application/octet-stream'});
-      if(navigator.canShare({files:[f]})){await navigator.share({files:[f],title:filename});return;}
-    }catch(e){if(e&&e.name==='AbortError')return;}
-  }
-  const url=URL.createObjectURL(blob);const a=document.createElement('a');
-  a.href=url;a.download=filename;document.body.appendChild(a);a.click();a.remove();
-  setTimeout(()=>URL.revokeObjectURL(url),5000);
-  toast('Saved '+filename);
-}
-
-/* ---------- knobs ---------- */
-const toN=(p,v)=>p.curve==='log'?Math.log(v/p.min)/Math.log(p.max/p.min):(v-p.min)/(p.max-p.min);
-const fromN=(p,n)=>{
-  n=clamp(n,0,1);
-  let v=p.curve==='log'?p.min*Math.pow(p.max/p.min,n):p.min+n*(p.max-p.min);
-  if(p.curve==='log')v=Number(v.toPrecision(3));else if(p.step)v=Math.round(v/p.step)*p.step;
-  return Number(clamp(v,p.min,p.max).toFixed(4));
-};
-function arcPath(r,a0,a1){
-  const pt=a=>[32+r*Math.sin(a*Math.PI/180),32-r*Math.cos(a*Math.PI/180)];
-  const s=pt(a0),e=pt(a1);
-  return 'M'+s[0].toFixed(2)+' '+s[1].toFixed(2)+'A'+r+' '+r+' 0 '+(Math.abs(a1-a0)>180?1:0)+' '+(a1>=a0?1:0)+' '+e[0].toFixed(2)+' '+e[1].toFixed(2);
-}
-function modTitle(id){return MODS.find(m=>m.id===id).title;}
-function makeKnob(p){
-  const root=el('div','knob');
-  const dial=el('div','dial');dial.tabIndex=0;
-  dial.setAttribute('role','slider');dial.setAttribute('aria-label',modTitle(p.mod)+' '+p.label);
-  dial.setAttribute('aria-valuemin',p.min);dial.setAttribute('aria-valuemax',p.max);
-  const svg=document.createElementNS(SVGNS,'svg');svg.setAttribute('viewBox','0 0 64 64');
-  const track=document.createElementNS(SVGNS,'path');track.setAttribute('d',arcPath(28,-135,135));track.setAttribute('fill','none');track.setAttribute('stroke','#2d333e');track.setAttribute('stroke-width','3');track.setAttribute('stroke-linecap','round');
-  const vp=document.createElementNS(SVGNS,'path');vp.setAttribute('fill','none');vp.setAttribute('stroke','#ffb340');vp.setAttribute('stroke-width','3');vp.setAttribute('stroke-linecap','round');
-  svg.append(track,vp);
-  const cap=el('div','cap');const pw=el('div','ptr-wrap');pw.appendChild(el('div','ptr'));
-  dial.append(svg,cap,pw);
-  const lab=el('div','k-label',p.label);const val=el('div','k-val');
-  root.append(dial,lab,val);
-  const bip=p.min<0&&p.max>0;
-  function paint(){
-    const v=state.values[p.id],n=toN(p,v),ang=-135+n*270;
-    pw.style.transform='rotate('+ang+'deg)';
-    vp.setAttribute('d',arcPath(28,bip?-135+toN(p,0)*270:-135,ang));
-    const t=F[p.fmt](v);val.textContent=t;
-    dial.setAttribute('aria-valuenow',v);dial.setAttribute('aria-valuetext',t);
-  }
-  function setV(v){
-    v=Number(clamp(v,p.min,p.max).toFixed(4));
-    if(v===state.values[p.id])return;
-    state.values[p.id]=v;paint();onParam(p);
-  }
-  function nudge(dir,mult){
-    mult=mult||1;const c=state.values[p.id];
-    if(p.curve==='log')setV(fromN(p,toN(p,c)+dir*0.02*mult));else setV(c+dir*p.step*mult);
-  }
-  let drag=null,lastTap=0;
-  const dStart=(y,id)=>{drag={y:y,n:toN(p,state.values[p.id]),id:id,moved:0};};
-  const dMove=(y,fine)=>{
-    if(!drag)return;
-    drag.moved+=Math.abs(drag.y-y);
-    drag.n=clamp(drag.n+(drag.y-y)/(fine?700:200),0,1);drag.y=y;
-    setV(fromN(p,drag.n));
-  };
-  const dEnd=()=>{
-    if(drag&&drag.moved<6){const t=Date.now();if(t-lastTap<350){setV(p.def);lastTap=0;}else lastTap=t;}
-    drag=null;
-  };
-  if(window.PointerEvent){
-    dial.addEventListener('pointerdown',e=>{
-      if(e.pointerType==='mouse'&&e.button!==0)return;
-      try{dial.setPointerCapture(e.pointerId);}catch(err){}
-      dStart(e.clientY,e.pointerId);
-      dial.focus({preventScroll:true});e.preventDefault();
-    });
-    dial.addEventListener('pointermove',e=>{if(drag&&e.pointerId===drag.id)dMove(e.clientY,e.shiftKey);});
-    const end=e=>{if(drag&&e.pointerId===drag.id)dEnd();};
-    dial.addEventListener('pointerup',end);dial.addEventListener('pointercancel',end);
-  }else{
-    dial.addEventListener('touchstart',e=>{dStart(e.touches[0].clientY,0);e.preventDefault();},{passive:false});
-    dial.addEventListener('touchmove',e=>{dMove(e.touches[0].clientY,false);e.preventDefault();},{passive:false});
-    dial.addEventListener('touchend',dEnd);dial.addEventListener('touchcancel',()=>{drag=null;});
-    dial.addEventListener('mousedown',e=>{dStart(e.clientY,0);e.preventDefault();
-      const mv=ev=>dMove(ev.clientY,ev.shiftKey);
-      const up=()=>{document.removeEventListener('mousemove',mv);document.removeEventListener('mouseup',up);dEnd();};
-      document.addEventListener('mousemove',mv);document.addEventListener('mouseup',up);});
-  }
-  dial.addEventListener('wheel',e=>{e.preventDefault();nudge(e.deltaY<0?1:-1,e.shiftKey?1:1);},{passive:false});
-  dial.addEventListener('dblclick',()=>setV(p.def));
-  dial.addEventListener('keydown',e=>{
-    const k=e.key;let h=true;
-    if(k==='ArrowUp'||k==='ArrowRight')nudge(1);
-    else if(k==='ArrowDown'||k==='ArrowLeft')nudge(-1);
-    else if(k==='PageUp')nudge(1,10);
-    else if(k==='PageDown')nudge(-1,10);
-    else if(k==='Home')setV(p.min);
-    else if(k==='End')setV(p.max);
-    else h=false;
-    if(h)e.preventDefault();
-  });
-  knobs[p.id]={paint};
-  paint();
-  return root;
-}
-
-/* ---------- rack ---------- */
-function buildRack(){
-  MODS.forEach(m=>{
-    const ps=P.filter(p=>p.mod===m.id);
-    const sec=el('section','panel mod');sec.style.setProperty('--n',ps.length);
-    const head=el('div','ph');head.appendChild(el('h2',null,m.title));
-    if(m.tog){
-      const b=el('button','mtog');b.setAttribute('aria-pressed','true');b.setAttribute('aria-label',m.title+' on');b.title='Switch '+m.title+' on or off';
-      b.appendChild(el('i','led on'));
-      b.addEventListener('click',()=>{state.on[m.id]=!state.on[m.id];paintMod(m.id);markDirty();applyAll();persist();});
-      head.appendChild(b);modEls[m.id]={sec,btn:b,led:b.firstChild};
-    }else if(m.id==='input'){
-      const l=el('i','led amber');l.id='gateLed';l.title='Gate open';head.appendChild(l);
-    }
-    const body=el('div','knobs');
-    ps.forEach(p=>body.appendChild(makeKnob(p)));
-    sec.append(head,body);
-    if(m.id==='input')sec.appendChild(el('p','cap-note','Gain, gate and output level stay put when you change presets.'));
-    ui.rack.appendChild(sec);
-  });
-}
-function paintMod(id){
-  const o=modEls[id];if(!o)return;
-  const on=state.on[id]!==false;
-  o.btn.setAttribute('aria-pressed',on);o.btn.setAttribute('aria-label',modTitle(id)+(on?' on':' off'));
-  o.led.className='led'+(on?' on':'');o.sec.classList.toggle('off',!on);
-}
-
-/* ---------- presets ---------- */
-function allPresets(){return FACTORY.map(f=>({id:f.id,name:f.name,values:f.v,noise:f.noise,factory:true})).concat(custom.map(c=>({id:c.id,name:c.name,values:c.values,on:c.on,factory:false})));}
-function loadPreset(id){
-  const pr=allPresets().find(x=>x.id===id);if(!pr)return;
-  P.forEach(p=>{if(p.session)return;state.values[p.id]=pr.values[p.id]!==undefined?pr.values[p.id]:p.def;});
-  MODS.forEach(m=>{if(m.tog)state.on[m.id]=pr.on&&pr.on[m.id]===false?false:true;});
-  if(pr.noise!==undefined&&noiseLvl!==pr.noise)setNoise(pr.noise,true);
-  cur={id:pr.id,dirty:false};
-  repaintAll();applyAll();updatePresetUI();persist();
-}
-function repaintAll(){Object.keys(knobs).forEach(k=>knobs[k].paint());MODS.forEach(m=>paintMod(m.id));}
-function markDirty(){if(!cur.dirty){cur.dirty=true;updatePresetUI();}}
-function onParam(p){markDirty();applyAll();persist();}
-function updatePresetUI(){
-  const pr=allPresets().find(x=>x.id===cur.id);
-  ui.presetState.textContent=pr?pr.name+(cur.dirty?' · edited':''):'Custom sound';
-  [...ui.pads.children].forEach(b=>b.setAttribute('aria-pressed',b.dataset.id===cur.id));
-  ui.chips.textContent='';
-  if(!custom.length)ui.chips.appendChild(el('span','none','Dial in a sound, name it, and it lands here.'));
-  custom.forEach(c=>{
-    const w=el('span','chipwrap');
-    const pick=el('button','pick',c.name);pick.dataset.id=c.id;pick.setAttribute('aria-pressed',c.id===cur.id);
-    pick.addEventListener('click',()=>loadPreset(c.id));
-    const del=el('button','del','Delete');del.setAttribute('aria-label','Delete preset '+c.name);
-    let arm=0;
-    del.addEventListener('click',()=>{
-      if(!arm){arm=setTimeout(()=>{arm=0;del.textContent='Delete';},2500);del.textContent='Sure?';return;}
-      custom=custom.filter(x=>x.id!==c.id);store.set('psb.custom.v1',custom);
-      if(cur.id===c.id)cur={id:'',dirty:true};
-      updatePresetUI();
-    });
-    w.append(pick,del);ui.chips.appendChild(w);
-  });
-}
-function buildPads(){
-  FACTORY.forEach(f=>{
-    const b=el('button','pad');b.dataset.id=f.id;b.style.setProperty('--pc',f.color);b.setAttribute('aria-pressed','false');
-    b.append(el('i','pl'),el('span','nm',f.name),el('span','ds',f.desc));
-    b.addEventListener('click',()=>loadPreset(f.id));
-    ui.pads.appendChild(b);
-  });
-}
-ui.saveForm.addEventListener('submit',e=>{
-  e.preventDefault();
-  let name=ui.presetName.value.trim();
-  if(!name){toast('Name your preset first.');ui.presetName.focus();return;}
-  if(FACTORY.some(f=>f.name.toLowerCase()===name.toLowerCase()))name+=' (mine)';
-  const values={};P.forEach(p=>{if(!p.session)values[p.id]=state.values[p.id];});
-  const on={};MODS.forEach(m=>{if(m.tog)on[m.id]=state.on[m.id]!==false;});
-  const ex=custom.find(c=>c.name.toLowerCase()===name.toLowerCase());
-  if(ex){ex.values=values;ex.on=on;cur={id:ex.id,dirty:false};}
-  else{const id='u'+Date.now().toString(36);custom.push({id,name,values,on});cur={id,dirty:false};}
-  store.set('psb.custom.v1',custom);ui.presetName.value='';updatePresetUI();persist();toast('Saved preset "'+name+'"');
-});
-let persistT=0;
-function persist(){clearTimeout(persistT);persistT=setTimeout(()=>store.set('psb.session.v1',{values:state.values,on:state.on,preset:cur.id,dirty:cur.dirty}),300);}
-
-/* ---------- display ---------- */
-const xOf=(f,w)=>w*Math.log(f/20)/Math.log(1000);
-const fOf=(x,w)=>20*Math.pow(1000,x/w);
-const mc={in:{cv:ui.mIn,db:-90,pk:-90,pkT:0,clipT:0},out:{cv:ui.mOut,db:-90,pk:-90,pkT:0,clipT:0},gr:{cv:ui.mGr},stage:{cv:ui.stageMeter}};
-function fit(o){
-  const r=o.cv.getBoundingClientRect(),dpr=Math.min(2,window.devicePixelRatio||1);
-  const w=Math.max(1,Math.round(r.width*dpr)),h=Math.max(1,Math.round(r.height*dpr));
-  if(o.cv.width!==w)o.cv.width=w;if(o.cv.height!==h)o.cv.height=h;
-  o.w=w;o.h=h;o.dpr=dpr;if(!o.g)o.g=o.cv.getContext('2d');
-}
-function fitAll(){fit(scope);fit(mc.in);fit(mc.out);fit(mc.gr);}
-scope.cv=ui.scope;
-function computeEq(){
-  const N=180;
-  if(!scope.freqs){scope.freqs=new Float32Array(N);for(let i=0;i<N;i++)scope.freqs[i]=20*Math.pow(1000,i/(N-1));scope.mag=new Float32Array(N);scope.ph=new Float32Array(N);scope.eq=new Float32Array(N);}
-  const prod=new Float32Array(N).fill(1);
-  [E.hpf,E.eqLow,E.eqLM,E.eqHM,E.eqAir].forEach(f=>{f.getFrequencyResponse(scope.freqs,scope.mag,scope.ph);for(let i=0;i<N;i++)prod[i]*=scope.mag[i];});
-  for(let i=0;i<N;i++)scope.eq[i]=20*Math.log10(Math.max(prod[i],1e-5));
-}
-function drawScope(running){
-  const g=scope.g,w=scope.w,h=scope.h,dpr=scope.dpr;if(!g)return;
-  const ph=h-16*dpr;
-  const bg=g.createLinearGradient(0,0,0,h);bg.addColorStop(0,'#0e1014');bg.addColorStop(1,'#08090b');
-  g.fillStyle=bg;g.fillRect(0,0,w,h);
-  g.lineWidth=1;g.font=(10*dpr)+'px "IBM Plex Mono",monospace';g.textBaseline='bottom';
-  [-20,-40,-60,-80].forEach(d=>{const y=Math.round(ph*(1-(d+90)/80))+.5;g.strokeStyle='rgba(255,255,255,.045)';g.beginPath();g.moveTo(0,y);g.lineTo(w,y);g.stroke();});
-  [50,100,200,500,1000,2000,5000,10000].forEach(f=>{
-    const x=Math.round(xOf(f,w))+.5;
-    g.strokeStyle='rgba(255,255,255,.07)';g.beginPath();g.moveTo(x,0);g.lineTo(x,ph);g.stroke();
-    g.fillStyle='#646a77';g.fillText(f>=1000?(f/1000)+'k':String(f),x+3*dpr,h-2*dpr);
-  });
-  g.strokeStyle='rgba(233,236,243,.14)';g.setLineDash([4*dpr,5*dpr]);g.beginPath();g.moveTo(0,ph/2);g.lineTo(w,ph/2);g.stroke();g.setLineDash([]);
-  if(running){
-    fdata(E.outAn,scope.fbuf);
-    const nb=scope.fbuf.length,nyq=ctx.sampleRate/2,cols=Math.max(16,Math.floor(w/(2*dpr)));
-    if(!scope.spec||scope.spec.length!==cols+1)scope.spec=new Float32Array(cols+1).fill(-120);
-    const pts=[];
-    for(let i=0;i<=cols;i++){
-      const f0=fOf(i/cols*w,w),f1=fOf(Math.min(cols,i+1)/cols*w,w);
-      const b0=Math.min(nb-1,Math.floor(f0/nyq*nb)),b1=Math.min(nb-1,Math.max(b0,Math.ceil(f1/nyq*nb)));
-      let m=-140;for(let b=b0;b<=b1;b++){if(scope.fbuf[b]>m)m=scope.fbuf[b];}
-      const prev=scope.spec[i];const cur2=m>prev?prev+(m-prev)*0.6:prev+(m-prev)*0.14;scope.spec[i]=cur2;
-      pts.push([i/cols*w,ph*(1-(clamp(cur2,-90,-10)+90)/80)]);
-    }
-    g.beginPath();pts.forEach((p,i)=>i?g.lineTo(p[0],p[1]):g.moveTo(p[0],p[1]));
-    g.lineTo(w,ph);g.lineTo(0,ph);g.closePath();
-    const fg=g.createLinearGradient(0,0,0,ph);fg.addColorStop(0,'rgba(255,179,64,.55)');fg.addColorStop(1,'rgba(255,179,64,.03)');
-    g.fillStyle=fg;g.fill();
-    g.beginPath();pts.forEach((p,i)=>i?g.lineTo(p[0],p[1]):g.moveTo(p[0],p[1]));
-    g.strokeStyle='#ffb340';g.lineWidth=1.5*dpr;g.stroke();
-  }else{
-    g.fillStyle='#4b515d';g.textAlign='center';g.font='500 '+(11*dpr)+'px "IBM Plex Mono",monospace';
-    g.fillText(powered?'NO SIGNAL':'STANDBY · PRESS POWER ON',w/2,ph*0.9);g.textAlign='left';
-  }
-  if(scope.eq){
-    const N=scope.eq.length;
-    g.beginPath();
-    for(let i=0;i<N;i++){const x=xOf(scope.freqs[i],w);const y=ph/2-clamp(scope.eq[i],-18,18)/18*(ph/2-6*dpr);i?g.lineTo(x,y):g.moveTo(x,y);}
-    g.strokeStyle='#e9ecf3';g.lineWidth=2*dpr;g.lineJoin='round';g.stroke();
-  }
-}
-function drawSeg(o,db,pk,amberOnly){
-  const g=o.g,w=o.w,h=o.h,N=48,gap=2*o.dpr,sw=(w-gap*(N-1))/N;
-  g.clearRect(0,0,w,h);
-  const pkI=pk!=null?clamp(Math.floor((pk+60)/60*N),0,N-1):-1;
-  for(let i=0;i<N;i++){
-    const sd=-60+(i+1)*60/N;
-    const lit=amberOnly?(i<db):(db>=sd-60/N*0.5);
-    const col=amberOnly?'#ffb340':(sd>-6?'#ff4a3a':sd>-18?'#ffb340':'#3fcf8e');
-    g.globalAlpha=lit||(i===pkI&&pk>-60)?1:0.13;g.fillStyle=col;
-    g.fillRect(i*(sw+gap),0,sw,h);
-  }
-  g.globalAlpha=1;
-}
-function level(an,buf){tdata(an,buf);let m=0;for(let i=0;i<buf.length;i++){const a=Math.abs(buf[i]);if(a>m)m=a;}return toDb(m);}
-function meterStep(m,db,now,dt){
-  m.db=Math.max(db,m.db-dt*30);
-  if(db>=m.pk){m.pk=db;m.pkT=now;}else if(now-m.pkT>1200)m.pk=Math.max(db,m.pk-dt*20);
-  if(db>-0.3)m.clipT=now;
-}
-const setTxt=(e,t)=>{if(e.textContent!==t)e.textContent=t;};
-let last=performance.now(),lastGate=null;
-function frame(now){
-  if(COARSE&&now-last<30){requestAnimationFrame(frame);return;}
-  const dt=Math.min(0.1,(now-last)/1000);last=now;
-  if(E.ready&&!document.hidden){
-    const running=ctx.state==='running';
-    if(running){
-      meterStep(mc.in,level(E.inAn,E.inBuf),now,dt);
-      meterStep(mc.out,level(E.outAn,E.outBuf),now,dt);
-    }else{mc.in.db=Math.max(-90,mc.in.db-dt*60);mc.out.db=Math.max(-90,mc.out.db-dt*60);mc.in.pk=mc.out.pk=-90;}
-    if(scope.eqFrames>0){computeEq();scope.eqFrames--;}
-    drawScope(running);
-    drawSeg(mc.in,mc.in.db,mc.in.pk);drawSeg(mc.out,mc.out.db,mc.out.pk);
-    const r=typeof E.comp.reduction==='number'?E.comp.reduction:(E.comp.reduction&&E.comp.reduction.value)||0;
-    const gr=running?clamp(-r,0,24):0;
-    drawSeg(mc.gr,Math.round(gr/24*48),null,true);
-    const fmtDb=m=>m.pk<=-89?'-∞':m.pk.toFixed(1);
-    setTxt(ui.vIn,fmtDb(mc.in));setTxt(ui.vOut,fmtDb(mc.out));setTxt(ui.vGr,gr.toFixed(1)+' dB');
-    ui.vIn.classList.toggle('hot',now-mc.in.clipT<3000);ui.vOut.classList.toggle('hot',now-mc.out.clipT<3000);
-    const gl=document.getElementById('gateLed');
-    if(gl){const on=running&&state.values.gateThr>-80&&E.gateOpen;if(on!==lastGate){lastGate=on;gl.classList.toggle('on',on);}}
-    if(R.active)setTxt(ui.timer,fmtRec((now-R.t0)/1000));
-    if(!ui.stage.hidden){
-      fit(mc.stage);drawSeg(mc.stage,mc.out.db,mc.out.pk);
-      setTxt(ui.stagePreset,ui.presetState.textContent);
-      setTxt(ui.stageTimer,R.active?fmtRec((now-R.t0)/1000):ui.timer.textContent);
-    }
-    if(fileUI.refresh)fileUI.refresh();if(backUI.refresh)backUI.refresh();
-    if(TP.take&&TP.take.dur){const pos=(ctx.currentTime-TP.t0)+TP.off;TP.take.prog.style.setProperty('--p',clamp(pos/TP.take.dur*100,0,100).toFixed(1)+'%');}
-    if(powered&&running&&mode==='mic'&&mic.src&&Math.floor(now/2000)!==frame.lastTxt){frame.lastTxt=Math.floor(now/2000);setStatus('live',liveText());}
-  }
-  requestAnimationFrame(frame);
-}
-
-/* ---------- init ---------- */
-function init(){
-  buildPads();buildRack();
-  const ok=buildEngine();
-  if(!ok){setStatus('err','Web Audio is not supported here');ui.power.disabled=true;ui.rec.disabled=true;setNote('This browser has no Web Audio support. Try a current Chrome, Edge, Safari or Firefox.','err');return;}
-  initNR();
-  applySavedOut();
-  filePlayer=new Player(E.inBus);backing=new Player(E.backGain);
-  wirePlayer(filePlayer,fileUI);wirePlayer(backing,backUI);wireCamera();setupPlatform();idbOpen().then(()=>loadTakes());
-  setT(E.backGain.gain,Math.pow(ui.backVol.value/100,1.6),0.01);
-  const saved=store.get('psb.session.v1',null);
-  if(saved&&saved.values){
-    P.forEach(p=>{if(typeof saved.values[p.id]==='number')state.values[p.id]=clamp(saved.values[p.id],p.min,p.max);});
-    MODS.forEach(m=>{if(m.tog&&saved.on&&saved.on[m.id]===false)state.on[m.id]=false;});
-    cur={id:saved.preset||'',dirty:!!saved.dirty};
-    repaintAll();applyAll();updatePresetUI();
-  }else loadPreset('spotlight');
-  setMode(mode);
-  if(!IN_ARTIFACT)setNote('');
-  if(typeof MediaRecorder==='undefined'){
-    if(!ctx.createScriptProcessor){ui.rec.disabled=true;toast('This browser cannot record from a web page.');}
-    ui.camSave.checked=false;ui.camSave.disabled=true;
-  }
-  fitAll();
-  if(window.ResizeObserver){const ro=new ResizeObserver(()=>fitAll());[ui.scope,ui.mIn,ui.mOut,ui.mGr].forEach(c=>ro.observe(c));}
-  else window.addEventListener('resize',fitAll);
-  if(!IN_ARTIFACT)refreshDevices();
-  requestAnimationFrame(frame);
-  autoPower();
-}
-init();
-})();
-</script>
-
+<div class="toast" id="toast" role="status" aria-live="polite"></div>
+<script src="app.js"></script>
 <script>if('serviceWorker' in navigator&&/^https?:$/.test(location.protocol)){window.addEventListener('load',function(){navigator.serviceWorker.register('sw.js').catch(function(){});});}</script>
 </body></html>

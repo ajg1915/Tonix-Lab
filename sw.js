@@ -1,5 +1,5 @@
-const V = 'psb-v15';
-const CORE = ['./', 'index.html', 'manifest.webmanifest', 'icon-192.png', 'icon-512.png', 'apple-touch-icon.png'];
+const V = 'tonix-v16';
+const CORE = ['./', 'index.html', 'studio.html', 'app.css', 'app.js', 'manifest.webmanifest', 'icon-192.png', 'icon-512.png', 'apple-touch-icon.png'];
 self.addEventListener('install', e => {
   e.waitUntil(caches.open(V).then(c => c.addAll(CORE)).then(() => self.skipWaiting()));
 });
@@ -21,8 +21,11 @@ self.addEventListener('fetch', e => {
   }
   if (u.origin !== location.origin) return;
   if (r.mode === 'navigate') {
-    e.respondWith(fetch(r).then(res => { const copy = res.clone(); caches.open(V).then(c => c.put('index.html', copy)); return res; })
-      .catch(() => caches.match('index.html')));
+    // Network first. Each page is cached under its own URL so studio.html and the hub never overwrite each other.
+    e.respondWith(fetch(r).then(res => {
+      if (res.ok) { const copy = res.clone(); caches.open(V).then(c => c.put(r, copy)); }
+      return res;
+    }).catch(() => caches.match(r, { ignoreSearch: true }).then(hit => hit || caches.match('index.html'))));
     return;
   }
   e.respondWith(caches.match(r).then(hit => hit || fetch(r)));
