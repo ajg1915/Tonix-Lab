@@ -216,3 +216,12 @@ table.tbl td:not(:first-child){font-family:var(--f-mono);white-space:nowrap}
 .toast.show{opacity:1;transform:translate(-50%,0)}
 @media (min-width:900px){.toast{bottom:28px}}
 .foot{margin:28px 0 0;color:var(--faint);font-size:12px}
+
+/* ---------- live ---------- */
+.liveframe{position:absolute;inset:0;background:#000}
+.liveframe iframe{width:100%;height:100%;border:0;display:block}
+.vid.air .tally{background:var(--rec)}
+.tabs a.onair svg,.side nav a.onair svg{color:var(--rec)}
+.tabs a.onair::after,.side nav a.onair::after{content:"";width:8px;height:8px;border-radius:50%;background:var(--rec);display:inline-block;margin-left:6px}
+.tabs a.onair{position:relative}.tabs a.onair::after{position:absolute;top:10px;right:calc(50% - 20px);margin:0}
+.locked{opacity:.5;pointer-events:none}

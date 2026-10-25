@@ -1,0 +1,27 @@
+<!doctype html>
+<html lang="en" data-theme="dark"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="theme-color" content="#0d0e11">
+<title>Watch live · Tonix Lab</title>
+<link rel="icon" type="image/png" href="icon-192.png">
+<script>try{document.documentElement.dataset.theme=localStorage.getItem('psb.theme.v1')||'dark'}catch(e){}</script>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Big+Shoulders+Display:wght@700;800&family=IBM+Plex+Sans:wght@400;600&display=swap">
+<link rel="stylesheet" href="app.css">
+<style>
+.wrap{max-width:1100px;margin:0 auto;padding:12px max(16px,env(safe-area-inset-left)) 32px}
+.bar{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:6px 0 14px}
+#player{position:relative;aspect-ratio:16/9;background:#000;border:1px solid var(--line);border-radius:8px;overflow:hidden}
+#player iframe{position:absolute;inset:0;width:100%;height:100%;border:0}
+h1{font-size:24px;margin:14px 0 4px}
+</style>
+</head><body>
+<div class="wrap">
+  <div class="bar"><a class="brand" href="./"><img src="icon-192.png" alt="" width="30" height="30"><b>Tonix Lab</b></a><a class="btn sm" href="./">Make your own stream</a></div>
+  <div id="player"></div>
+  <p class="note err" id="msg" hidden></p>
+  <h1 id="ttl">Live stream</h1>
+  <p class="note">If you see a play button, tap it to start the sound. The picture appears when the host goes live. Streaming runs through <a href="https://vdo.ninja" target="_blank" rel="noopener noreferrer">VDO.Ninja</a>.</p>
+</div>
+<script src="vdo.js"></script>
+<script src="watch.js"></script>
+</body></html>

@@ -91,7 +91,7 @@
           <ul class="status-list">
             <li><div><b>Studio</b><small>Vocal strip, presets, recorder, camera</small></div><span class="pill ok"><i class="dot"></i>Ready</span></li>
             <li><div><b>Stream settings</b><small>Resolution, fps, bitrate, codec, audio</small></div><span class="pill ok"><i class="dot"></i>Ready</span></li>
-            <li><div><b>Live rooms and viewing</b><small>Publish and watch links</small></div><span class="pill soon">Next</span></li>
+            <li><div><b>Live streaming and viewing</b><small>Go live, watch link, OBS link (via VDO.Ninja)</small></div><span class="pill ok"><i class="dot"></i>Ready</span></li>
             <li><div><b>Soundboard and playlist</b><small>Mixed into the stream audio</small></div><span class="pill soon">Planned</span></li>
             <li><div><b>Live chat</b><small>Chat beside every player</small></div><span class="pill soon">Planned</span></li>
             <li><div><b>Embeds and offline loops</b><small>Custom players, loop when offline</small></div><span class="pill soon">Planned</span></li>
@@ -116,6 +116,7 @@
               <video id="prev" muted playsinline autoplay></video>
               <span class="tally"><i class="dot"></i>PREVIEW</span>
               <div class="ph-msg" id="prevMsg">Start the preview to check your camera and mic</div>
+              <div id="liveFrame" class="liveframe" hidden></div>
             </div>
             <div class="meter" aria-hidden="true"><i id="lvl"></i></div>
             <div class="actual" id="actual" role="status" aria-live="polite"></div>
@@ -124,6 +125,15 @@
               <button class="btn" id="flipBtn" hidden style="flex:1 1 120px">Flip camera</button>
             </div>
             <p class="note" id="prevNote" role="status"></p>
+            <div id="liveCtl" hidden>
+              <div class="readout" style="margin-top:0"><div><small>On air</small><b id="liveTime">00:00</b></div><div><small>Viewers</small><b id="liveViews">0</b></div><div><small>Status</small><b id="liveState">Starting</b></div></div>
+              <div style="display:flex;gap:10px;margin-top:12px;flex-wrap:wrap">
+                <button class="btn" id="liveMic" aria-pressed="false" style="flex:1 1 140px">Mute mic</button>
+                <button class="btn" id="liveCam" aria-pressed="false" style="flex:1 1 140px">Hide camera</button>
+              </div>
+              <p class="note">Bitrate changes apply right away. Size, frame rate and sound settings apply the next time you go live.</p>
+              <p class="note"><a href="#" id="liveOpen" target="_blank" rel="noopener noreferrer">Having trouble? Open the stream page in a new tab.</a> Keep this page open while you are live.</p>
+            </div>
             <div class="field"><label for="camSel">Camera</label><select id="camSel" data-k="cam"><option value="">System default</option></select></div>
             <div class="field"><label for="micSel">Microphone</label><select id="micSel" data-k="mic"><option value="">System default</option></select></div>
             <p class="note" id="devNote">Start the preview once so the browser can list your devices.</p>
@@ -192,12 +202,12 @@
             <label class="chk"><input type="checkbox" data-k="ec"><span>Echo cancellation<small>For speakers or a phone held at arm's length. Turn off for music and when wearing headphones.</small></span></label>
             <label class="chk"><input type="checkbox" data-k="ns"><span>Noise suppression<small>Reduces fans and room hiss. It can clip singing, so leave it off for music.</small></span></label>
             <label class="chk"><input type="checkbox" data-k="agc"><span>Auto gain<small>Evens out loud and quiet speech. Off gives you full manual control.</small></span></label>
-            <p class="note">The Studio's channel strip and noise removal are the better tools for a polished vocal.</p>
+            <p class="note">The Studio's channel strip and noise removal are the better tools for a polished vocal. The sample rate here applies to the preview; VDO.Ninja chooses the live rate.</p>
           </div>
 
           <div class="golive">
-            <button class="btn live block" id="goBtn" aria-disabled="true">Go live</button>
-            <p class="note" id="goNote">Live rooms arrive in the next stage. Your settings are already saved and will be used.</p>
+            <button class="btn live block" id="goBtn">Go live</button>
+            <p class="note" id="goNote">Streams run through VDO.Ninja. Pressing Go live asks to use your camera and mic. Anyone with your viewer link can watch.</p>
           </div>
         </div>
       </div>
@@ -213,7 +223,7 @@
         <button id="tabLinks" aria-pressed="true">Links &amp; social</button>
         <button id="tabPlayer" aria-pressed="false">Player &amp; embed</button>
       </div>
-      <div class="banner" style="margin-bottom:14px"><span><b>Preview of your links.</b> They will start working when live rooms switch on in the next stage. Your room name is saved.</span></div>
+      <div class="banner" style="margin-bottom:14px"><span><b>Streams run through VDO.Ninja.</b> Your room name is the stream address, so anyone who has a link can watch. Pick a name that is hard to guess for private streams.</span></div>
 
       <!-- links -->
       <div id="paneLinks" class="stack">
@@ -225,8 +235,8 @@
         </div>
         <div class="cols two">
           <div class="link"><b>Viewer link</b><code id="lkWatch"></code><p>Send this to your audience.</p><button class="btn" data-copy="lkWatch">Copy link</button></div>
-          <div class="link"><b>Guest invite</b><code id="lkGuest"></code><p>For a co-host who joins with their own camera and mic.</p><button class="btn" data-copy="lkGuest">Copy link</button></div>
-          <div class="link"><b>OBS / Streamlabs source</b><code id="lkObs"></code><p>Clean video and audio with no page around it. Paste it into a Browser source.</p><button class="btn" data-copy="lkObs">Copy link</button></div>
+          <div class="link"><b>Camera link</b><code id="lkGuest"></code><p>Open this on another phone or computer to send its camera and mic to this room. Use it instead of Go live, not at the same time.</p><button class="btn" data-copy="lkGuest">Copy link</button></div>
+          <div class="link"><b>OBS / Streamlabs source</b><code id="lkObs"></code><p>Clean video and audio straight from VDO.Ninja, with no page around it. Paste it into a Browser source.</p><button class="btn" data-copy="lkObs">Copy link</button></div>
           <div class="link"><b>Embed link</b><code id="lkEmbed"></code><p>The bare player. Use the Player &amp; embed tab for the code.</p><button class="btn" data-copy="lkEmbed">Copy link</button></div>
         </div>
         <div class="panel">
@@ -298,6 +308,7 @@
         <li>Pick a <b>Quick preset</b>. <b>Balanced</b> is a safe start for most people.</li>
         <li>Open <b>Share &amp; embed</b>, copy your viewer link and send it out.</li>
       </ol></div></details>
+      <details id="h-how"><summary>How streaming works here</summary><div class="body"><p>When you press <b>Go live</b>, your camera and mic open inside Tonix Lab and are sent straight to your viewers through <b>VDO.Ninja</b>, a free open source streaming service. Its servers only help your device and your viewers find each other. The video itself goes from your device to theirs.</p><ul><li>Your <b>viewer link</b> opens a Tonix Lab watch page. Your <b>OBS / Streamlabs link</b> goes straight to VDO.Ninja, which is the lightest option for OBS.</li><li>Every viewer receives their own copy from your device, so a small audience works best. Use a strong connection and keep the page open.</li><li>Anyone with a link can watch. Do not post a private room name.</li></ul></div></details>
       <details id="h-phone"><summary>Using it on a phone or tablet</summary><div class="body"><ul>
         <li>Use the tab bar at the bottom to move between Home, Studio, Go live, Share and How to.</li>
         <li>Add it to your home screen for a full-screen app: on iPhone tap Share then <b>Add to Home Screen</b>; on Android tap <b>Install</b>.</li>
@@ -366,7 +377,7 @@
       <details id="h-actual"><summary>Preview shows a different size than I picked</summary><div class="body"><p>Browsers treat resolution and frame rate as a request, not an order. The line under the preview shows what you actually got. Many phone cameras cap at 30 fps in low light or on the front camera.</p></div></details>
     </section>
 
-    <p class="foot">Tonix Lab · settings stay on this device.</p>
+    <p class="foot">Tonix Lab · settings stay on this device · Streaming by <a href="https://vdo.ninja" target="_blank" rel="noopener noreferrer">VDO.Ninja</a></p>
   </main>
 
   <nav class="tabs" aria-label="Main">
@@ -379,6 +390,7 @@
 </div>
 
 <div class="toast" id="toast" role="status" aria-live="polite"></div>
+<script src="vdo.js"></script>
 <script src="app.js"></script>
 <script>if('serviceWorker' in navigator&&/^https?:$/.test(location.protocol)){window.addEventListener('load',function(){navigator.serviceWorker.register('sw.js').catch(function(){});});}</script>
 </body></html>

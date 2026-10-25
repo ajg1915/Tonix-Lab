@@ -150,7 +150,7 @@ function renderLive() {
   if (!sel.options.length) CODECS.forEach(function (c) { var o = document.createElement('option'); o.value = c.id; sel.appendChild(o); });
   CODECS.forEach(function (c, i) { sel.options[i].textContent = c.label + (codecOk[c.id] ? '' : ' (not available on this device)'); sel.options[i].disabled = !codecOk[c.id]; });
   sel.value = S.codec;
-  $('#codecNote').textContent = CODECS.filter(function (c) { return c.id === S.codec; })[0].note;
+  $('#codecNote').textContent = CODECS.filter(function (c) { return c.id === S.codec; })[0].note + ' Used on your viewer and OBS links.';
 
   // totals
   var total = (S.video ? S.vKbps : 0) + S.aKbps;
@@ -162,6 +162,7 @@ function renderLive() {
   var active = PRESETS.filter(function (p) { return Object.keys(p.v).every(function (k) { return S[k] === p.v[k]; }); })[0];
   $$('#presets .chip').forEach(function (c) { c.setAttribute('aria-pressed', !!active && c.dataset.id === active.id); });
   $('#presetNote').textContent = active ? active.note : 'Custom settings.';
+  if (live && live.on) lockSettings(true);
 }
 
 function buildPresets() {
@@ -170,7 +171,7 @@ function buildPresets() {
     var b = document.createElement('button'); b.type = 'button'; b.className = 'chip'; b.dataset.id = p.id; b.textContent = p.label;
     b.addEventListener('click', function () {
       for (var k in p.v) S[k] = p.v[k];
-      saveS(); renderLive(); if (previewing) startPreview();
+      saveS(); renderLive(); renderShare(); if (previewing) startPreview();
     });
     box.appendChild(b);
   });
@@ -180,7 +181,8 @@ function setKey(k, raw) {
   var t = TYPES[k], v = raw;
   if (t === 'n') v = Number(raw); else if (t === 'b') v = raw === true || raw === 'true'; else v = String(raw);
   if (t === 'n' && isNaN(v)) return;
-  S[k] = v; saveS(); renderLive();
+  S[k] = v; saveS(); renderLive(); renderShare();
+  if (live.on && k === 'vKbps') vdoSend({ bitrate: S.vKbps, lock: true });
   if (previewing && (k === 'cam' || k === 'mic' || k === 'res' || k === 'fps' || k === 'video' || k === 'ec' || k === 'ns' || k === 'agc' || k === 'stereo' || k === 'sr')) schedulePreview();
 }
 var rePrevT = 0;
@@ -197,7 +199,104 @@ function wireLive() {
   $('#vSuggest').addEventListener('click', function () {
     var r = SUGGEST[suggestKey()]; setKey('vKbps', Math.round((r[0] + r[1]) / 2 / 100) * 100);
   });
-  $('#goBtn').addEventListener('click', function () { toast('Live rooms arrive in the next stage'); });
+  $('#goBtn').addEventListener('click', function () { if (live.on) endLive(); else goLive(); });
+  $('#liveMic').addEventListener('click', function () { live.micOn = !live.micOn; vdoSend({ mic: live.micOn }); paintLive(); });
+  $('#liveCam').addEventListener('click', function () { live.camOn = !live.camOn; vdoSend({ camera: live.camOn }); paintLive(); });
+}
+
+
+/* =====================================================================
+   GOING LIVE: VDO.Ninja runs in an iframe inside the preview box.
+   Messages go to and from that iframe only, and only on VDO.Ninja's origin.
+   ===================================================================== */
+var VDO_ORIGIN = (function () { try { return new URL(TonixVdo.HOST).origin; } catch (e) { return 'https://vdo.ninja'; } })();
+var live = { on: false, frame: null, t0: 0, tick: 0, statT: 0, views: 0, ready: false, micOn: true, camOn: true, wake: null };
+
+function selLabel(sel) { var o = sel.options[sel.selectedIndex]; return o && o.value ? o.textContent : ''; }
+function pushLink(clean) {
+  return TonixVdo.pushUrl(room, S, { camLabel: S.video ? selLabel($('#camSel')) : '', micLabel: selLabel($('#micSel')), clean: clean });
+}
+function vdoSend(msg) {
+  if (!live.on || !live.frame || !live.frame.contentWindow) return;
+  try { live.frame.contentWindow.postMessage(msg, VDO_ORIGIN); } catch (e) {}
+}
+function lockSettings(on) {
+  $$('[data-k]').forEach(function (el) { if (el.dataset.k !== 'vKbps') el.disabled = on; });
+  $$('#presets .chip').forEach(function (c) { c.disabled = on; });
+  $('#camSel').disabled = on; $('#micSel').disabled = on;
+  $('#prevBtn').disabled = on; $('#flipBtn').disabled = on;
+}
+function paintLive() {
+  var sec = Math.floor((Date.now() - live.t0) / 1000), m = Math.floor(sec / 60), h = Math.floor(m / 60);
+  $('#liveTime').textContent = (h ? h + ':' + String(m % 60).padStart(2, '0') : String(m).padStart(2, '0')) + ':' + String(sec % 60).padStart(2, '0');
+  $('#liveViews').textContent = live.views;
+  $('#liveState').textContent = live.ready ? 'On air' : (sec > 25 ? 'Waiting' : 'Starting');
+  var mic = $('#liveMic'), cam = $('#liveCam');
+  mic.setAttribute('aria-pressed', !live.micOn); mic.textContent = live.micOn ? 'Mute mic' : 'Unmute mic';
+  cam.setAttribute('aria-pressed', !live.camOn); cam.textContent = live.camOn ? 'Hide camera' : 'Show camera';
+  cam.hidden = !S.video;
+  if (!live.ready && sec > 25) previewMsg('Still waiting. Allow the camera and mic if asked. If nothing happens, use the new-tab link below.', 'warn');
+  else if (live.ready) previewMsg('');
+}
+function onVdoMsg(e) {
+  if (!live.on || !live.frame || e.source !== live.frame.contentWindow || e.origin !== VDO_ORIGIN) return;
+  var d = e.data; if (!d || typeof d !== 'object') return;
+  if (d.stats && typeof d.stats === 'object') {
+    live.ready = true;
+    if (typeof d.stats.total_outbound_connections === 'number') live.views = d.stats.total_outbound_connections;
+  } else if (d.action === 'view-connection') {
+    live.ready = true; live.views = Math.max(0, live.views + (d.value ? 1 : -1));
+  }
+  paintLive();
+}
+window.addEventListener('message', onVdoMsg);
+
+function acquireWake() {
+  if (!live.on || !navigator.wakeLock || document.hidden) return;
+  navigator.wakeLock.request('screen').then(function (l) { live.wake = l; }).catch(function () {});
+}
+document.addEventListener('visibilitychange', function () { if (!document.hidden) acquireWake(); });
+window.addEventListener('beforeunload', function (e) { if (live.on) { e.preventDefault(); e.returnValue = ''; } });
+
+function goLive() {
+  if (!room) { toast('Set a room name in Share first'); return; }
+  if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) { previewMsg('This browser cannot reach your camera or mic. Try Chrome or Safari over https.', 'err'); return; }
+  stopPreview(); previewMsg('');
+  var f = document.createElement('iframe');
+  f.title = 'Your live stream';
+  f.allow = 'camera; microphone; autoplay; display-capture; fullscreen';
+  f.setAttribute('allowfullscreen', '');
+  f.src = pushLink(true);
+  var box = $('#liveFrame'); box.innerHTML = ''; box.appendChild(f); box.hidden = false;
+  live.on = true; live.frame = f; live.t0 = Date.now(); live.views = 0; live.ready = false; live.micOn = true; live.camOn = true;
+  $('#vid').classList.add('on', 'air');
+  $('#vid .tally').innerHTML = '<i class="dot"></i>LIVE';
+  $('#liveCtl').hidden = false; $('#liveOpen').href = pushLink(false);
+  $('#goBtn').textContent = 'End stream';
+  $('#prevState').textContent = 'Live';
+  $$('[data-nav="live"]').forEach(function (a) { a.classList.add('onair'); });
+  lockSettings(true); paintLive();
+  live.tick = setInterval(paintLive, 1000);
+  live.statT = setInterval(function () { vdoSend({ getStats: true, cib: 'tl-stats' }); }, 3000);
+  acquireWake();
+  try { $('#vid').scrollIntoView({ block: 'center', behavior: 'smooth' }); } catch (e) {}
+  toast('Going live. Allow the camera and mic if asked.');
+}
+
+function endLive() {
+  vdoSend({ close: true });
+  clearInterval(live.tick); clearInterval(live.statT);
+  var box = $('#liveFrame'); box.innerHTML = ''; box.hidden = true;
+  live.on = false; live.frame = null; live.ready = false;
+  if (live.wake) { try { live.wake.release(); } catch (e) {} live.wake = null; }
+  $('#vid').classList.remove('on', 'air');
+  $('#vid .tally').innerHTML = '<i class="dot"></i>PREVIEW';
+  $('#liveCtl').hidden = true; previewMsg('');
+  $('#goBtn').textContent = 'Go live';
+  $('#prevState').textContent = 'Off';
+  $$('[data-nav="live"]').forEach(function (a) { a.classList.remove('onair'); });
+  lockSettings(false); renderLive();
+  toast('Stream ended');
 }
 
 /* ---------- preview ---------- */
@@ -314,10 +413,15 @@ function randRoom() {
   for (var i = 0; i < b.length; i++) r += a[b[i] % a.length];
   return 'tonix-' + r;
 }
-/* One place to change when live rooms ship. */
+/* Links carry your quality choices so viewers and OBS ask VDO.Ninja for the same codec and bitrate. */
 function linksFor(room) {
-  var q = '?room=' + encodeURIComponent(room);
-  return { watch: BASE + 'watch.html' + q, guest: BASE + 'join.html' + q, obs: BASE + 'watch.html' + q + '&clean=1', embed: BASE + 'embed.html' + q };
+  var q = '?room=' + encodeURIComponent(room) + '&codec=' + encodeURIComponent(S.codec) + '&vb=' + S.vKbps + '&ab=' + S.aKbps;
+  return {
+    watch: BASE + 'watch.html' + q,
+    guest: TonixVdo.pushUrl(room, S, { clean: false, autostart: false }),
+    obs: TonixVdo.viewUrl(room, S),
+    embed: BASE + 'embed.html' + q
+  };
 }
 var room = store.get('tonix.room.v1', '') || randRoom();
 store.set('tonix.room.v1', room);
@@ -375,7 +479,7 @@ function esc(s) { return String(s).replace(/&/g, '&amp;').replace(/"/g, '&quot;'
 function ratioNums(r) { var p = r.split(':'); return [Number(p[0]), Number(p[1])]; }
 
 function embedHtml() {
-  var q = new URLSearchParams({ room: room, accent: P.accent.replace('#', ''), chat: P.chat ? 1 : 0, viewers: P.viewers ? 1 : 0, badge: P.badge ? 1 : 0, autoplay: P.autoplay ? 1 : 0, title: P.title });
+  var q = new URLSearchParams({ room: room, accent: P.accent.replace('#', ''), chat: P.chat ? 1 : 0, viewers: P.viewers ? 1 : 0, badge: P.badge ? 1 : 0, autoplay: P.autoplay ? 1 : 0, title: P.title, codec: S.codec, vb: S.vKbps, ab: S.aKbps });
   var src = BASE + 'embed.html?' + q.toString(), rn = ratioNums(P.ratio);
   var attrs = 'title="' + esc(P.title) + '" allow="autoplay; fullscreen; picture-in-picture" allowfullscreen loading="lazy"';
   if (P.responsive) {
