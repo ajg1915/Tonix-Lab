@@ -41,6 +41,9 @@ function pushUrl(room, S, opts) {
   if (S.video) { p.push(['ovb', vb]); if (S.vMode === 'fixed') p.push(['mvb', vb]); }
   if (S.stereo) p.push(['stereo']);
   p.push(['aec', S.ec ? 1 : 0], ['denoise', S.ns ? 1 : 0], ['autogain', S.agc ? 1 : 0]);
+  /* nomirror stops VDO.Ninja mirroring a front camera on its own, so the live box matches the plain preview.
+     Mirror and flip choices are applied by Tonix Lab itself, on the frame, because VDO.Ninja's own options are not consistent across cameras. */
+  p.push(['nomirror']);
   if (opts.autostart !== false) p.push(['autostart']);
   if (opts.clean !== false) p.push(['cleanoutput']);
   return HOST + '?' + qs(p);

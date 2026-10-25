@@ -93,8 +93,8 @@ var PRESETS = [
   { id: 'smooth', label: 'Smooth 60', note: '720p at 60 fps for fast motion, like gaming or sport.', v: { video: true, res: '720', fps: 60, vKbps: 4500, vMode: 'fixed', aKbps: 160, stereo: true } },
   { id: 'audio', label: 'Audio only', note: 'No video. Smallest and lightest, great for podcasts and music.', v: { video: false, vKbps: 0, vMode: 'fixed', aKbps: 192, stereo: true } }
 ];
-var DEF = { video: true, res: '720', fps: 30, vKbps: 2500, vMode: 'fixed', codec: 'h264', aKbps: 128, stereo: true, sr: 48000, ec: false, ns: false, agc: false, cam: '', mic: '', src: 'cam', m3u8: '', aud: '' };
-var TYPES = { video: 'b', res: 's', fps: 'n', vKbps: 'n', vMode: 's', codec: 's', aKbps: 'n', stereo: 'b', sr: 'n', ec: 'b', ns: 'b', agc: 'b', cam: 's', mic: 's', src: 's', m3u8: 's', aud: 's' };
+var DEF = { video: true, res: '720', fps: 30, vKbps: 2500, vMode: 'fixed', codec: 'h264', aKbps: 128, stereo: true, sr: 48000, ec: false, ns: false, agc: false, cam: '', mic: '', src: 'cam', m3u8: '', aud: '', mirror: false, flipv: false };
+var TYPES = { video: 'b', res: 's', fps: 'n', vKbps: 'n', vMode: 's', codec: 's', aKbps: 'n', stereo: 'b', sr: 'n', ec: 'b', ns: 'b', agc: 'b', cam: 's', mic: 's', src: 's', m3u8: 's', aud: 's', mirror: 'b', flipv: 'b' };
 var S = (function () { var o = {}, saved = store.get('tonix.stream.v1', {}), k; for (k in DEF) o[k] = saved[k] !== undefined ? saved[k] : DEF[k]; return o; })();
 if (!S.vKbps) S.vKbps = 2500;
 function saveS() { store.set('tonix.stream.v1', S); }
@@ -123,6 +123,9 @@ function suggestKey() { return S.res + '-' + (S.fps >= 50 ? 60 : 30); }
 function renderLive() {
   if (S.video && S.vKbps < 300) S.vKbps = 2500; // coming back from audio-only
   document.body.dataset.src = S.src;
+  var pv = $('#prev'); if (pv) pv.style.transform = dirT();
+  var lf = $('#liveFrame iframe'); if (lf) lf.style.transform = dirT();
+  if (urlP) urlP.setDir(S.mirror, S.flipv);
   var urlMode = S.src === 'm3u8';
   $('#goNote').textContent = urlMode
     ? 'Viewers play your M3U8 link straight from its source, so there is no limit on audience size and nothing is sent from this device. Go live starts your player and marks you on air. You can close this page afterwards.'
@@ -232,7 +235,7 @@ function vdoSend(msg) {
   try { live.frame.contentWindow.postMessage(msg, VDO_ORIGIN); } catch (e) {}
 }
 function lockSettings(on) {
-  $$('[data-k]').forEach(function (el) { if (el.dataset.k !== 'vKbps') el.disabled = on; });
+  $$('[data-k]').forEach(function (el) { var k = el.dataset.k; if (k !== 'vKbps' && k !== 'mirror' && k !== 'flipv') el.disabled = on; });
   $$('#presets .chip').forEach(function (c) { c.disabled = on; });
   $('#camSel').disabled = on; $('#micSel').disabled = on;
   $('#prevBtn').disabled = on; $('#flipBtn').disabled = on;
@@ -282,7 +285,7 @@ function startUrlPlayer() {
   if (urlP) { urlP.destroy(); urlP = null; }
   urlErr = false; previewMsg('');
   var box = $('#urlFrame'); box.hidden = false; $('#vid').classList.add('on');
-  urlP = TonixPlayer.mount(box, { src: u, aud: TonixPlayer.okUrl(S.aud), muted: true, onStatus: function (k, t) {
+  urlP = TonixPlayer.mount(box, { src: u, aud: TonixPlayer.okUrl(S.aud), muted: true, mirror: S.mirror, flip: S.flipv, onStatus: function (k, t) {
     urlErr = k === 'err';
     if (k === 'err') previewMsg(t, 'err'); else if (k === 'ok') previewMsg('');
   } });
@@ -315,7 +318,7 @@ function goLive() {
   f.title = 'Your live stream';
   f.allow = 'camera; microphone; autoplay; display-capture; fullscreen';
   f.setAttribute('allowfullscreen', '');
-  f.src = pushLink(true);
+  f.src = pushLink(true); f.style.transform = dirT();
   var box = $('#liveFrame'); box.innerHTML = ''; box.appendChild(f); box.hidden = false;
   live.on = true; live.frame = f; live.t0 = Date.now(); live.views = 0; live.ready = false; live.micOn = true; live.camOn = true;
   $('#vid').classList.add('on', 'air');
@@ -473,14 +476,16 @@ function randRoom() {
   return 'tonix-' + r;
 }
 /* Links carry your quality choices so viewers and OBS ask VDO.Ninja for the same codec and bitrate. */
+function dirT() { return (S.mirror ? 'scaleX(-1)' : '') + (S.flipv ? ' scaleY(-1)' : ''); }
+function dirQ() { return (S.mirror ? '&mr=1' : '') + (S.flipv ? '&fl=1' : ''); }
 function linksFor(room) {
   if (S.src === 'm3u8') {
     var su = TonixPlayer.okUrl(S.m3u8), au = TonixPlayer.okUrl(S.aud);
     if (!su) return { watch: '', guest: '', obs: '', embed: '', url: true };
-    var up = '?src=' + encodeURIComponent(su) + (au ? '&aud=' + encodeURIComponent(au) : '');
+    var up = '?src=' + encodeURIComponent(su) + (au ? '&aud=' + encodeURIComponent(au) : '') + dirQ();
     return { watch: BASE + 'watch.html' + up, guest: '', obs: BASE + 'embed.html' + up, embed: BASE + 'embed.html' + up, url: true };
   }
-  var q = '?room=' + encodeURIComponent(room) + '&codec=' + encodeURIComponent(S.codec) + '&vb=' + S.vKbps + '&ab=' + S.aKbps;
+  var q = '?room=' + encodeURIComponent(room) + '&codec=' + encodeURIComponent(S.codec) + '&vb=' + S.vKbps + '&ab=' + S.aKbps + dirQ();
   return {
     watch: BASE + 'watch.html' + q,
     guest: TonixVdo.pushUrl(room, S, { clean: false, autostart: false }),
@@ -571,6 +576,8 @@ function embedHtml() {
   var base = { accent: P.accent.replace('#', ''), chat: P.chat ? 1 : 0, viewers: P.viewers ? 1 : 0, badge: P.badge ? 1 : 0, autoplay: P.autoplay ? 1 : 0, title: P.title };
   if (S.src === 'm3u8') { base.src = TonixPlayer.okUrl(S.m3u8); var au = TonixPlayer.okUrl(S.aud); if (au) base.aud = au; }
   else { base.room = room; base.codec = S.codec; base.vb = S.vKbps; base.ab = S.aKbps; }
+  if (S.mirror) base.mr = 1;
+  if (S.flipv) base.fl = 1;
   var q = new URLSearchParams(base);
   var src = BASE + 'embed.html?' + q.toString(), rn = ratioNums(P.ratio);
   var attrs = 'title="' + esc(P.title) + '" allow="autoplay; fullscreen; picture-in-picture" allowfullscreen loading="lazy"';

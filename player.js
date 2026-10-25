@@ -52,9 +52,10 @@ function mount(box, o) {
   box.innerHTML = '';
   var wrap = document.createElement('div'); wrap.style.cssText = 'position:absolute;inset:0;background:#000';
   var v = document.createElement('video'); v.playsInline = true; v.setAttribute('playsinline', ''); v.controls = o.controls !== false; v.style.cssText = 'width:100%;height:100%;object-fit:contain;display:block;background:#000';
+  function dir(m, f) { v.style.transform = (m || f) ? (m ? 'scaleX(-1)' : '') + (f ? ' scaleY(-1)' : '') : ''; }
   var withAud = !!okUrl(o.aud);
   v.muted = !!o.muted || withAud;                        // with a second audio link, the video's own sound stays off
-  wrap.appendChild(v);
+  wrap.appendChild(v); dir(o.mirror, o.flip);
   var a = null;
   if (withAud) { a = document.createElement('audio'); a.muted = !!o.muted; wrap.appendChild(a); }
   var btn = document.createElement('button'); btn.type = 'button'; btn.textContent = 'Tap to play';
@@ -80,6 +81,7 @@ function mount(box, o) {
 
   return {
     video: v, audio: a,
+    setDir: dir,
     setSound: function (on) { if (a) a.muted = !on; else v.muted = !on; },
     destroy: function () { vh.destroy(); if (ah) ah.destroy(); box.innerHTML = ''; }
   };
