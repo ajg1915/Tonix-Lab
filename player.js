@@ -3,6 +3,7 @@
 (function (root) {
 'use strict';
 
+var MSG_HTTP = 'This link starts with http, and browsers block that on an https page. We tried the https version and it did not work, so this host only offers http. Ask the host for an https link, or put the stream behind an https proxy.';
 var MSG_BAD = 'This link will not play. Check that it is a working .m3u8 address that starts with https, that the stream is live, and that its host allows other websites to play it.';
 
 function okUrl(u) {
@@ -23,9 +24,10 @@ function loadHls() {
 
 /* Attach one URL to a <video> or <audio>. Calls onErr(message) when it cannot play. Returns { destroy }. */
 function attach(media, url, onErr) {
-  var h = null, dead = false;
-  function fail(m) { if (!dead && onErr) onErr(m || MSG_BAD); }
-  if (location.protocol === 'https:' && /^http:/i.test(url)) { fail('This link starts with http, and browsers block that on an https page. Use the https version of the link.'); return { destroy: function () {} }; }
+  var h = null, dead = false, upgraded = false;
+  /* Browsers block http media on an https page. Many hosts also serve https, so try that first. */
+  if (location.protocol === 'https:' && /^http:/i.test(url)) { url = url.replace(/^http:/i, 'https:'); upgraded = true; }
+  function fail(m) { if (!dead && onErr) onErr(m || (upgraded ? MSG_HTTP : MSG_BAD)); }
   media.addEventListener('error', function () { if (!h) fail(); });
   if (!isHls(url) || media.canPlayType('application/vnd.apple.mpegurl')) {
     media.src = url;                                   // plain file, or Safari / iPhone playing HLS natively
