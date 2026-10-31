@@ -12,6 +12,7 @@ try { var qp = new URLSearchParams(location.search).get('model'); if (qp && /^(l
 var CACHE = 'tonix-models-v1';
 var NFFT = 4096, HOP = 1024, BINS = 2049, SR = 44100, CORE = ((navigator.deviceMemory && navigator.deviceMemory <= 4) || /Android|iPhone|iPad/i.test(navigator.userAgent) ? 8 : 20) * SR, CTX = 3 * SR, XF = SR >> 1;
 
+var LADDER = [{ core: 0, opt: 'basic', mem: false }, { core: 6, opt: 'disabled', mem: true }, { core: 3, opt: 'disabled', mem: true }], rung = 0, stage = '';
 var file = null, cancel = false, running = false, session = null, urls = [];
 function msg(t) { $('#biMsg').textContent = t || ''; }
 function bar(p) { $('#biBar').style.width = Math.max(0, Math.min(100, p)) + '%'; }
@@ -153,7 +154,10 @@ function getSession() {
     msg('Starting the model...');
     ort.env.wasm.wasmPaths = new URL('ort/', location.href).href;
     ort.env.wasm.numThreads = self.crossOriginIsolated ? Math.max(1, Math.min(4, (navigator.hardwareConcurrency || 2) >> 1)) : 1;
-    return ort.InferenceSession.create(new Uint8Array(buf), { executionProviders: ['wasm'], graphOptimizationLevel: 'basic', enableCpuMemArena: false, enableMemPattern: false });
+    var L = LADDER[rung], so = { executionProviders: ['wasm'], graphOptimizationLevel: L.opt };
+    if (!L.mem) { so.enableCpuMemArena = false; so.enableMemPattern = false; }
+    stage = 'starting the model';
+    return ort.InferenceSession.create(new Uint8Array(buf), so);
   }).then(function (s) { session = s; return s; });
 }
 
@@ -214,14 +218,16 @@ function separateChunk(xL, xR) {
 /* ---------- whole song, in overlapping chunks ---------- */
 function separate(L, R, onProg) {
   var n = L.length, vocL = new Float32Array(n), vocR = new Float32Array(n), starts = [], s;
-  for (s = 0; s < n; s += CORE) starts.push(s);
+  var core = LADDER[rung].core ? LADDER[rung].core * SR : CORE;
+  for (s = 0; s < n; s += core) starts.push(s);
   var idx = 0, t0 = Date.now();
   function next() {
     if (cancel) throw new Error('cancelled');
     if (idx >= starts.length) return;
-    var s0 = starts[idx], e0 = Math.min(n, s0 + CORE);
+    var s0 = starts[idx], e0 = Math.min(n, s0 + core);
     var ks = Math.max(0, s0 - (XF >> 1)), ke = Math.min(n, e0 + (XF >> 1)), a = Math.max(0, ks - CTX), b = Math.min(n, ke + CTX);
     if (b - a < NFFT * 2) throw new Error('That song is too short to separate.');
+    stage = 'separating part ' + (idx + 1);
     return separateChunk(L.subarray(a, b), R.subarray(a, b)).then(function (v) {
       for (var i = ks; i < ke; i++) {
         var w = 1;
@@ -244,6 +250,14 @@ function load(f) {
   if (!f) return;
   file = f; reset(); $('#biName').textContent = f.name + ' (' + (f.size / 1048576).toFixed(1) + ' MB)'; $('#biGo').disabled = false;
 }
+function attempt() {
+  return separate(L_, R_, function (p, t) { bar(p); msg(t); }).catch(function (e) {
+    if (cancel || (e && e.message === 'cancelled') || rung >= LADDER.length - 1) throw e;
+    rung++; session = null; msg('That setting did not work on this device. Trying a lighter one...'); bar(40);
+    return getSession().then(attempt);
+  });
+}
+var L_, R_;
 function run() {
   if (running || !file) return;
   running = true; cancel = false; reset(); $('#biGo').hidden = true; $('#biCancel').hidden = false; $('#biState').textContent = 'Working';
@@ -252,8 +266,8 @@ function run() {
   file.arrayBuffer().then(function (ab) {
     return new Promise(function (res, rej) { ctx.decodeAudioData(ab, res, rej); });
   }).then(function (buf) { try { ctx.close(); } catch (e) {} return toStereo44(buf); })
-  .then(function (ch) { L = ch[0]; R = ch[1]; return getSession(); })
-  .then(function () { bar(40); return separate(L, R, function (p, t) { bar(p); msg(t); }); })
+  .then(function (ch) { L = ch[0]; R = ch[1]; L_ = L; R_ = R; rung = 0; return getSession(); })
+  .then(function () { bar(40); return attempt(); })
   .then(function (v) {
     var n = L.length, iL = new Float32Array(n), iR = new Float32Array(n);
     for (var i = 0; i < n; i++) { iL[i] = L[i] - v[0][i]; iR[i] = R[i] - v[1][i]; }
@@ -272,7 +286,8 @@ function explain(e) {
   var m = (e && e.message) || String(e);
   if (/Failed to fetch|NetworkError|download failed/i.test(m)) return 'Could not download the model. Check your connection and try again. (' + m + ')';
   if (/out of memory|allocation|memory/i.test(m)) return 'This device ran out of memory. Close other tabs and try again, use a computer, or try a shorter song. (' + m + ')';
-  return 'Something went wrong: ' + m;
+  if (/^\d+$/.test(m)) return 'The AI engine stopped with internal code ' + m + ' while ' + (stage || 'working') + ' (setting ' + (rung + 1) + ' of ' + LADDER.length + '). Please send me this message. Usually it means this browser ran out of memory: close other tabs, or try Chrome or Edge on a computer.';
+  return 'Something went wrong while ' + (stage || 'working') + ': ' + m;
 }
 function dl(u, n) { var a = document.createElement('a'); a.href = u; a.download = n; document.body.appendChild(a); a.click(); a.remove(); }
 
