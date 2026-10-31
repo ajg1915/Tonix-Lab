@@ -157,6 +157,38 @@ function getSession() {
   }).then(function (s) { session = s; return s; });
 }
 
+/* run the model; if it was exported with a fixed number of frames, feed it in blocks of that size */
+function fixedFrames() {
+  try {
+    var m = session.inputMetadata, d = Array.isArray(m) ? m[0] && (m[0].shape || m[0].dimensions) : m && m[session.inputNames[0]] && (m[session.inputNames[0]].shape || m[session.inputNames[0]].dimensions);
+    if (d && d.length === 4 && typeof d[3] === 'number' && d[3] > 0) return d[3];
+  } catch (e) {}
+  return 0;
+}
+function runBlock(arr, F) {
+  var feeds = {}; feeds[session.inputNames[0]] = new ort.Tensor('float32', arr, [1, 2, BINS, F]);
+  return session.run(feeds).then(function (res) {
+    var out = res[session.outputNames[0]];
+    if (out.dims.length !== 4 || out.dims[2] !== BINS || out.dims[3] !== F) throw new Error('The model returned an unexpected shape: ' + out.dims.join('x') + ' (wanted 1x2x' + BINS + 'x' + F + ')');
+    return out.data;
+  });
+}
+function runModel(inp, F) {
+  var Fm = fixedFrames();
+  if (!Fm || Fm === F) return runBlock(inp, F);
+  var res = new Float32Array(2 * BINS * F), b0 = 0;
+  function nextBlock() {
+    if (b0 >= F) return Promise.resolve(res);
+    var len = Math.min(Fm, F - b0), blk = new Float32Array(2 * BINS * Fm), c, k, t;
+    for (c = 0; c < 2 * BINS; c++) for (t = 0; t < len; t++) blk[c * Fm + t] = inp[c * F + b0 + t];
+    return runBlock(blk, Fm).then(function (o) {
+      for (c = 0; c < 2 * BINS; c++) for (t = 0; t < len; t++) res[c * F + b0 + t] = o[c * Fm + t];
+      b0 += Fm; return nextBlock();
+    });
+  }
+  return nextBlock();
+}
+
 /* ---------- one chunk ---------- */
 function separateChunk(xL, xR) {
   var n = xL.length, sL = stft(xL), sR = stft(xR), F = sL.frames, k, t;
@@ -166,12 +198,9 @@ function separateChunk(xL, xR) {
     inp[k * F + t] = Math.hypot(sL.re[i0], sL.im[i0]);
     inp[(BINS + k) * F + t] = Math.hypot(sR.re[i0], sR.im[i0]);
   }
-  var feeds = {}; feeds[session.inputNames[0]] = new ort.Tensor('float32', inp, [1, 2, BINS, F]);
-  var magCopy = inp; // the model must not change the buffer, but keep the reference we read from
-  return session.run(feeds).then(function (res) {
-    var out = res[session.outputNames[0]];
-    if (out.dims.length !== 4 || out.dims[2] !== BINS || out.dims[3] !== F) throw new Error('The model returned an unexpected shape: ' + out.dims.join('x'));
-    var o = out.data, vr = new Float32Array(F * BINS), vi = new Float32Array(F * BINS), wr = new Float32Array(F * BINS), wi2 = new Float32Array(F * BINS);
+  var magCopy = inp;
+  return runModel(inp, F).then(function (o) {
+    var vr = new Float32Array(F * BINS), vi = new Float32Array(F * BINS), wr = new Float32Array(F * BINS), wi2 = new Float32Array(F * BINS);
     for (t = 0; t < F; t++) for (k = 0; k < BINS; k++) {
       var i0 = t * BINS + k, a = (k * F + t), b = ((BINS + k) * F + t);
       var mL = magCopy[a] > 1e-8 ? Math.min(1, Math.max(0, o[a] / magCopy[a])) : 0;
