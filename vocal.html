@@ -16,6 +16,9 @@ h1{font-size:30px;margin:6px 0 4px}
 .drop b{color:var(--text);font-size:16px}
 .stack{display:grid;gap:14px}
 .stack[hidden]{display:none}
+.pbar{height:8px;border-radius:4px;background:var(--line-hi);overflow:hidden;margin-top:12px}
+.pbar i{display:block;height:100%;width:0;background:var(--amber);transition:width .3s}
+audio{display:block}
 #aiFrame{width:100%;height:1050px;border:1px solid var(--line);border-radius:8px;background:#fff;display:block}
 audio{width:100%;margin-top:10px}
 .ab{display:flex;gap:8px;margin-top:10px}
@@ -31,10 +34,30 @@ audio{width:100%;margin-top:10px}
   <p class="lede">Take the singer out of a song and keep the music, right in your browser. Your file never leaves your device.</p>
 
   <div class="seg" role="group" aria-label="Which tool" style="margin:12px 0 14px">
-    <button type="button" data-tab="ai" aria-pressed="true">AI separator (best)</button><button type="button" data-tab="quick" aria-pressed="false">Quick method</button>
+    <button type="button" data-tab="bi" aria-pressed="true">Built-in AI</button><button type="button" data-tab="ai" aria-pressed="false">AI on Hugging Face</button><button type="button" data-tab="quick" aria-pressed="false">Quick</button>
   </div>
 
-  <div class="stack" id="ai">
+  <div class="stack" id="bi">
+    <div class="panel">
+      <div class="ph"><h2 class="ph-t">Built-in AI separation</h2><span class="pill" id="biState">Ready</span></div>
+      <p class="note" style="margin-top:0">Splits a song into <b>vocals</b> and <b>music</b>, right on this device. The first time, it downloads the AI model (about 108 MB) and keeps it for next time. Your song is never uploaded. Best on a computer: a 4-minute song takes a few minutes, and phones may run out of memory.</p>
+      <label class="drop" id="biDrop" for="biFile"><b>Tap to choose a song</b><span>or drop it here. MP3, WAV, M4A, OGG, FLAC and more.</span></label>
+      <input type="file" id="biFile" accept="audio/*,.mp3,.wav,.m4a,.aac,.ogg,.flac,.opus" hidden>
+      <p class="note fname" id="biName"></p>
+      <div style="display:flex;gap:10px;flex-wrap:wrap"><button class="btn pri" type="button" id="biGo" style="flex:1 1 200px" disabled>Separate</button><button class="btn" type="button" id="biCancel" style="flex:1 1 200px" hidden>Cancel</button></div>
+      <div class="pbar" aria-hidden="true"><i id="biBar"></i></div>
+      <p class="note" id="biMsg" role="status"></p>
+      <p class="note err" id="biErr" role="alert" hidden></p>
+    </div>
+    <div class="panel" id="biOut" hidden>
+      <div class="ph"><h2 class="ph-t">Your files</h2></div>
+      <div class="field" style="margin-top:0"><span class="lbl">Music, no vocals</span><audio id="biInst" controls preload="metadata" style="width:100%"></audio><button class="btn pri" type="button" id="biDlInst" style="margin-top:8px">Download WAV</button></div>
+      <div class="field"><span class="lbl">Vocals only</span><audio id="biVoc" controls preload="metadata" style="width:100%"></audio><button class="btn" type="button" id="biDlVoc" style="margin-top:8px">Download WAV</button></div>
+      <p class="note">Files are 44.1 kHz stereo WAV. Some of the voice's echo, and a little of the music, can end up on the wrong side. That's normal for this model. The AI is Open-Unmix (UMX-L), by Stöter et al.; its weights are licensed for non-commercial use.</p>
+    </div>
+  </div>
+
+  <div class="stack" id="ai" hidden>
     <div class="panel">
       <div class="ph"><h2 class="ph-t">AI vocal separator</h2></div>
       <ol class="steps">
@@ -108,5 +131,7 @@ audio{width:100%;margin-top:10px}
     </div>
   </div>
 </div>
+<script src="ort/ort.wasm.min.js"></script>
 <script src="vocal.js"></script>
+<script src="separate.js"></script>
 </body></html>

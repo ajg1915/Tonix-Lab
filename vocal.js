@@ -196,9 +196,9 @@ function show(which, t, play) {
 $('#file').addEventListener('change', function () { load(this.files[0]); });
 document.querySelectorAll('[data-tab]').forEach(function (b) {
   b.addEventListener('click', function () {
-    var ai = b.dataset.tab === 'ai';
+    var t = b.dataset.tab;
     document.querySelectorAll('[data-tab]').forEach(function (x) { x.setAttribute('aria-pressed', x === b); });
-    $('#ai').hidden = !ai; $('#app').hidden = ai;
+    $('#bi').hidden = t !== 'bi'; $('#ai').hidden = t !== 'ai'; $('#app').hidden = t !== 'quick';
   });
 });
 var ENG = {

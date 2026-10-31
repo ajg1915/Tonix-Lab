@@ -1,11 +1,11 @@
-const V = 'tonix-v29';
-const CORE = ['./', 'index.html', 'studio.html', 'app.css', 'app.js', 'vdo.js', 'player.js', 'vocal.html', 'vocal.js', 'qr.js', 'watch.html', 'watch.js', 'embed.html', 'manifest.webmanifest', 'icon-192.png', 'icon-512.png', 'apple-touch-icon.png'];
+const V = 'tonix-v30';
+const CORE = ['./', 'index.html', 'studio.html', 'app.css', 'app.js', 'vdo.js', 'player.js', 'vocal.html', 'vocal.js', 'separate.js', 'qr.js', 'watch.html', 'watch.js', 'embed.html', 'manifest.webmanifest', 'icon-192.png', 'icon-512.png', 'apple-touch-icon.png'];
 self.addEventListener('install', e => {
   e.waitUntil(caches.open(V).then(c => c.addAll(CORE)).then(() => self.skipWaiting()));
 });
 self.addEventListener('activate', e => {
   e.waitUntil(caches.keys()
-    .then(keys => Promise.all(keys.filter(k => k !== V && k !== 'psb-fonts').map(k => caches.delete(k))))
+    .then(keys => Promise.all(keys.filter(k => k !== V && k !== 'psb-fonts' && k !== 'tonix-models-v1').map(k => caches.delete(k))))
     .then(() => self.clients.claim()));
 });
 self.addEventListener('fetch', e => {
@@ -30,7 +30,7 @@ self.addEventListener('fetch', e => {
   }
   // Network first for everything, so a new version reaches phones on the next open. The cache is only the offline fallback.
   e.respondWith(fetch(r, { cache: 'no-cache' }).then(res => {
-    if (res.ok && !u.pathname.includes('/vdo/')) { const copy = res.clone(); caches.open(V).then(c => c.put(r, copy)); }
+    if (res.ok && !u.pathname.includes('/vdo/') && !u.pathname.includes('/ort/')) { const copy = res.clone(); caches.open(V).then(c => c.put(r, copy)); }
     return res;
   }).catch(() => caches.match(r)));
 });
