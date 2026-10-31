@@ -15,6 +15,8 @@ h1{font-size:30px;margin:6px 0 4px}
 .drop.over{border-color:var(--amber);color:var(--text)}
 .drop b{color:var(--text);font-size:16px}
 .stack{display:grid;gap:14px}
+.stack[hidden]{display:none}
+#aiFrame{width:100%;height:1050px;border:1px solid var(--line);border-radius:8px;background:#fff;display:block}
 audio{width:100%;margin-top:10px}
 .ab{display:flex;gap:8px;margin-top:10px}
 .ab .btn{flex:1}
@@ -28,7 +30,26 @@ audio{width:100%;margin-top:10px}
   <h1>Vocal remover</h1>
   <p class="lede">Take the singer out of a song and keep the music, right in your browser. Your file never leaves your device.</p>
 
-  <div class="stack" id="app">
+  <div class="seg" role="group" aria-label="Which tool" style="margin:12px 0 14px">
+    <button type="button" data-tab="ai" aria-pressed="true">AI separator (best)</button><button type="button" data-tab="quick" aria-pressed="false">Quick method</button>
+  </div>
+
+  <div class="stack" id="ai">
+    <div class="panel">
+      <div class="ph"><h2 class="ph-t">AI vocal separator</h2></div>
+      <ol class="steps">
+        <li><div><b>Upload your song</b><span>Use the box below. MP3, WAV and most audio files work.</span></div></li>
+        <li><div><b>Pick a model</b><span>Start with <b>UVR-MDX-NET-Inst_HQ_3</b> for the music without the singer. If some voice is left, try <b>UVR-MDX-NET-Voc_FT</b> or <b>Kim_Vocal_2</b>.</span></div></li>
+        <li><div><b>Run it and download</b><span>You get the music and the voice as two separate files. Long songs can take a few minutes.</span></div></li>
+      </ol>
+      <p class="note">This is a free AI model running on Hugging Face, so your song is sent there to be processed. If the box below stays blank or says the Space is sleeping, wait a minute or <a href="https://huggingface.co/spaces/MohamedRashad/Audio-Separator" target="_blank" rel="noopener noreferrer">open it in its own tab</a>.</p>
+    </div>
+    <iframe id="aiFrame" title="AI vocal separator" src="https://mohamedrashad-audio-separator.hf.space" allow="clipboard-write" loading="lazy"></iframe>
+    <p class="note">AI separation by <a href="https://huggingface.co/spaces/MohamedRashad/Audio-Separator" target="_blank" rel="noopener noreferrer">Audio Separator</a> on Hugging Face, using Ultimate Vocal Remover models. Not part of Tonix Lab.</p>
+  </div>
+
+  <div class="stack" id="app" hidden>
+    <div class="panel"><p class="note" style="margin:0"><b>Quick method.</b> Works fully offline in your browser, but only helps when the singer is exactly in the middle of the mix. It does very little on most real songs, especially live recordings. Use the AI separator for those.</p></div>
     <div class="panel">
       <div class="ph"><h2 class="ph-t">1. Choose a song</h2></div>
       <label class="drop" id="drop" for="file"><b>Tap to choose an audio file</b><span>or drop it here. MP3, WAV, M4A, OGG, FLAC and more.</span></label>

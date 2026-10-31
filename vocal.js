@@ -194,6 +194,13 @@ function show(which, t, play) {
 
 /* ---------- wiring ---------- */
 $('#file').addEventListener('change', function () { load(this.files[0]); });
+document.querySelectorAll('[data-tab]').forEach(function (b) {
+  b.addEventListener('click', function () {
+    var ai = b.dataset.tab === 'ai';
+    document.querySelectorAll('[data-tab]').forEach(function (x) { x.setAttribute('aria-pressed', x === b); });
+    $('#ai').hidden = !ai; $('#app').hidden = ai;
+  });
+});
 var drop = $('#drop');
 ['dragenter', 'dragover'].forEach(function (e) { drop.addEventListener(e, function (ev) { ev.preventDefault(); drop.classList.add('over'); }); });
 ['dragleave', 'drop'].forEach(function (e) { drop.addEventListener(e, function (ev) { ev.preventDefault(); drop.classList.remove('over'); }); });
