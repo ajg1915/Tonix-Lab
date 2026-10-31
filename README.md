@@ -26,3 +26,6 @@ Open the live page, then install it: Android Chrome shows **Install app**; on iP
 - `hls.light.min.js`: hls.js (Apache-2.0). Licence in `HLSJS-LICENSE.txt`.
 - `ort/`: ONNX Runtime Web (MIT), runs the separation model in the browser.
 - Separation model (downloaded on demand, not stored here): Open-Unmix UMX-L vocals as ONNX, `nsosu/demucs-onnx` on Hugging Face. The original Open-Unmix weights are licensed for non-commercial use (CC BY-NC-SA 4.0), so check before using this commercially.
+
+## Vocal server (optional)
+`server/` is a small Docker server that runs an Ultimate-Vocal-Remover-style AI on your own computer. The Vocal remover page has a **My server** panel that talks to it. See `server/README.md`.

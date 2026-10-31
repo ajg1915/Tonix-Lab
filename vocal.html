@@ -33,6 +33,28 @@ audio{width:100%;margin-top:10px}
   <h1>Vocal remover</h1>
   <p class="lede">Take the singer out of a song and keep the music, right in your browser. Your file never leaves your device.</p>
 
+  <div class="stack" id="srv">
+    <div class="panel">
+      <div class="ph"><h2 class="ph-t">My server (best quality)</h2><span class="pill" id="srvState">Not checked</span></div>
+      <p class="note" style="margin-top:0">Uses the AI server running in Docker on your own computer. No limits, and your song stays on your machine. Start it with <code>docker compose up -d --build</code> in the <code>server</code> folder.</p>
+      <div class="field" style="margin-top:0"><label class="lbl" for="srvUrl">Server address</label><input type="url" id="srvUrl" value="http://localhost:8765" autocomplete="off" spellcheck="false"></div>
+      <div style="display:flex;gap:10px;flex-wrap:wrap;margin-top:8px"><button class="btn" type="button" id="srvCheck" style="flex:1 1 140px">Check server</button></div>
+      <label class="drop" id="srvDrop" for="srvFile" style="margin-top:12px"><b>Tap to choose a song</b><span>or drop it here. MP3, WAV, M4A, OGG, FLAC and more.</span></label>
+      <input type="file" id="srvFile" accept="audio/*,.mp3,.wav,.m4a,.aac,.ogg,.flac,.opus" hidden>
+      <p class="note fname" id="srvName"></p>
+      <button class="btn pri" type="button" id="srvGo" style="width:100%" disabled>Separate on my server</button>
+      <div class="pbar" aria-hidden="true"><i id="srvBar"></i></div>
+      <p class="note" id="srvMsg" role="status"></p>
+      <p class="note err" id="srvErr" role="alert" hidden></p>
+    </div>
+    <div class="panel" id="srvOut" hidden>
+      <div class="ph"><h2 class="ph-t">Your files</h2></div>
+      <div class="field" style="margin-top:0"><span class="lbl">Music, no vocals</span><audio id="srvInst" controls preload="metadata" style="width:100%"></audio><button class="btn pri" type="button" id="srvDlInst" style="margin-top:8px">Download WAV</button></div>
+      <div class="field"><span class="lbl">Vocals only</span><audio id="srvVoc" controls preload="metadata" style="width:100%"></audio><button class="btn" type="button" id="srvDlVoc" style="margin-top:8px">Download WAV</button></div>
+    </div>
+  </div>
+
+  <h2 class="ph-t" style="margin:22px 0 8px">Or in the browser (experimental)</h2>
   <div class="stack" id="bi">
     <div class="panel">
       <div class="ph"><h2 class="ph-t">Built-in AI separation</h2><span class="pill" id="biState">Ready</span></div>
@@ -54,6 +76,7 @@ audio{width:100%;margin-top:10px}
   </div>
 
 </div>
+<script src="server.js"></script>
 <script src="ort/ort.wasm.min.js"></script>
 <script src="separate.js"></script>
 </body></html>

@@ -1,0 +1,15 @@
+services:
+  vocals:
+    build: .
+    container_name: tonix-vocal-server
+    restart: unless-stopped
+    ports:
+      - "8765:8765"
+    volumes:
+      - ./models:/models
+      - ./work:/work
+    environment:
+      # Websites allowed to use this server. Add more, separated by commas.
+      ALLOWED_ORIGINS: "https://ajg1915.github.io,http://localhost,http://127.0.0.1"
+      # The AI model. UVR-MDX-NET-Voc_FT is a good all-round vocal model.
+      MODEL: "UVR-MDX-NET-Voc_FT.onnx"
