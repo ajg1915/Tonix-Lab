@@ -1,0 +1,75 @@
+<!doctype html>
+<html lang="en" data-theme="dark"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="theme-color" content="#0d0e11">
+<title>Vocal remover · Tonix Lab</title>
+<link rel="icon" type="image/png" href="icon-192.png">
+<script>try{document.documentElement.dataset.theme=localStorage.getItem('psb.theme.v1')||'dark'}catch(e){}</script>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Big+Shoulders+Display:wght@700;800&family=IBM+Plex+Sans:wght@400;600&family=IBM+Plex+Mono:wght@500&display=swap">
+<link rel="stylesheet" href="app.css">
+<style>
+.wrap{max-width:760px;margin:0 auto;padding:12px max(16px,env(safe-area-inset-left)) 40px}
+.bar{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:6px 0 14px}
+h1{font-size:30px;margin:6px 0 4px}
+.drop{display:grid;place-items:center;gap:8px;min-height:150px;padding:20px;border:2px dashed var(--line-hi);border-radius:8px;text-align:center;cursor:pointer;color:var(--mute)}
+.drop.over{border-color:var(--amber);color:var(--text)}
+.drop b{color:var(--text);font-size:16px}
+.stack{display:grid;gap:14px}
+audio{width:100%;margin-top:10px}
+.ab{display:flex;gap:8px;margin-top:10px}
+.ab .btn{flex:1}
+#busy{display:none;margin-top:10px}
+.busy #busy{display:block}
+.fname{font:500 13px var(--f-mono);color:var(--mute);word-break:break-all}
+</style>
+</head><body>
+<div class="wrap">
+  <div class="bar"><a class="brand" href="./"><img src="icon-192.png" alt="" width="30" height="30"><b>Tonix Lab</b></a><a class="btn sm" href="./">Hub</a></div>
+  <h1>Vocal remover</h1>
+  <p class="lede">Take the singer out of a song and keep the music, right in your browser. Your file never leaves your device.</p>
+
+  <div class="stack" id="app">
+    <div class="panel">
+      <div class="ph"><h2 class="ph-t">1. Choose a song</h2></div>
+      <label class="drop" id="drop" for="file"><b>Tap to choose an audio file</b><span>or drop it here. MP3, WAV, M4A, OGG, FLAC and more.</span></label>
+      <input type="file" id="file" accept="audio/*,.mp3,.wav,.m4a,.aac,.ogg,.flac,.opus" hidden>
+      <p class="note fname" id="fname"></p>
+      <p class="note warn" id="monoWarn" hidden>This file is mono, so both sides are identical and there is nothing to separate. Vocals cannot be removed from it with this method. Try a stereo version.</p>
+      <p class="note err" id="err" role="alert" hidden></p>
+    </div>
+
+    <div class="panel" id="opts" hidden>
+      <div class="ph"><h2 class="ph-t">2. Choose what to keep</h2></div>
+      <div class="seg" role="group" aria-label="Output">
+        <button type="button" data-o="inst" aria-pressed="true">Music only</button><button type="button" data-o="vox" aria-pressed="false">Vocals only</button>
+      </div>
+      <div class="field"><span class="lbl">Strength</span>
+        <div class="rng"><label class="sr" for="str">Strength</label><span></span><output id="strOut" for="str">100%</output>
+          <input type="range" id="str" min="0" max="100" step="5" value="100"></div>
+        <p class="note">100% takes out as much as possible. Lower it to leave a little of the singer in.</p></div>
+      <div class="field"><span class="lbl">Keep the bass below</span>
+        <div class="rng"><label class="sr" for="lo">Keep the bass below</label><span></span><output id="loOut" for="lo">120 Hz</output>
+          <input type="range" id="lo" min="40" max="400" step="10" value="120"></div>
+        <p class="note">Kick and bass sit in the middle of the mix, just like the vocal. This keeps them.</p></div>
+      <div class="field"><span class="lbl">Keep the highs above</span>
+        <div class="rng"><label class="sr" for="hi">Keep the highs above</label><span></span><output id="hiOut" for="hi">9.0 kHz</output>
+          <input type="range" id="hi" min="4000" max="16000" step="500" value="9000"></div>
+        <p class="note">Keeps cymbals and hi-hats bright. Raise it if some singing is left, lower it if the music sounds thin.</p></div>
+      <label class="chk"><input type="checkbox" id="norm" checked><span>Match the loudness<small>Raises the result back up, since removing the vocal makes it quieter.</small></span></label>
+    </div>
+
+    <div class="panel" id="out" hidden>
+      <div class="ph"><h2 class="ph-t">3. Listen and save</h2><span class="pill" id="state">Ready</span></div>
+      <div class="ab" role="group" aria-label="Listen to">
+        <button class="btn" type="button" id="abOrig" aria-pressed="false">Original</button>
+        <button class="btn pri" type="button" id="abRes" aria-pressed="true">Result</button>
+      </div>
+      <audio id="player" controls preload="auto"></audio>
+      <p class="note" id="busy" role="status">Working on it. Long songs take a few seconds.</p>
+      <div style="display:flex;gap:10px;margin-top:12px;flex-wrap:wrap"><button class="btn pri" type="button" id="dl" style="flex:1 1 200px" disabled>Download WAV</button></div>
+      <p class="note">Works best on stereo songs where the singer is in the center, which is most studio recordings. It cannot remove reverb, or backing vocals placed to the sides. The file saves as a WAV, which is large but lossless.</p>
+    </div>
+  </div>
+</div>
+<script src="vocal.js"></script>
+</body></html>
