@@ -42,7 +42,13 @@ audio{width:100%;margin-top:10px}
         <li><div><b>Pick a model</b><span>Start with <b>UVR-MDX-NET-Inst_HQ_3</b> for the music without the singer. If some voice is left, try <b>UVR-MDX-NET-Voc_FT</b> or <b>Kim_Vocal_2</b>.</span></div></li>
         <li><div><b>Run it and download</b><span>You get the music and the voice as two separate files. Long songs can take a few minutes.</span></div></li>
       </ol>
-      <p class="note">This is a free AI model running on Hugging Face, so your song is sent there to be processed. If the box below stays blank or says the Space is sleeping, wait a minute or <a href="https://huggingface.co/spaces/MohamedRashad/Audio-Separator" target="_blank" rel="noopener noreferrer">open it in its own tab</a>.</p>
+      <div class="field"><span class="lbl">AI engine</span>
+        <div class="seg" role="group" aria-label="AI engine">
+          <button type="button" data-eng="uvr" aria-pressed="true">Audio Separator</button><button type="button" data-eng="demucs" aria-pressed="false">Demucs v4</button>
+        </div>
+        <p class="note" id="engNote">Audio Separator uses Ultimate Vocal Remover models and lets you pick which one. If one engine gives an error, switch to the other.</p></div>
+      <a class="btn pri" id="engOpen" href="https://huggingface.co/spaces/MohamedRashad/Audio-Separator" target="_blank" rel="noopener noreferrer" style="margin-top:12px">Open in its own tab (more reliable on phones)</a>
+      <p class="note">These are free AI models running on Hugging Face, so your song is sent there to be processed. If the box below stays blank, shows an error or says the Space is sleeping, wait a minute, switch engine, or use the button above.</p>
     </div>
     <iframe id="aiFrame" title="AI vocal separator" src="https://mohamedrashad-audio-separator.hf.space" allow="clipboard-write" loading="lazy"></iframe>
     <p class="note">AI separation by <a href="https://huggingface.co/spaces/MohamedRashad/Audio-Separator" target="_blank" rel="noopener noreferrer">Audio Separator</a> on Hugging Face, using Ultimate Vocal Remover models. Not part of Tonix Lab.</p>

@@ -201,6 +201,17 @@ document.querySelectorAll('[data-tab]').forEach(function (b) {
     $('#ai').hidden = !ai; $('#app').hidden = ai;
   });
 });
+var ENG = {
+  uvr: { frame: 'https://mohamedrashad-audio-separator.hf.space', open: 'https://huggingface.co/spaces/MohamedRashad/Audio-Separator', note: 'Audio Separator uses Ultimate Vocal Remover models and lets you pick which one. If one engine gives an error, switch to the other.' },
+  demucs: { frame: 'https://abidlabs-music-separation.hf.space', open: 'https://huggingface.co/spaces/abidlabs/music-separation', note: 'Demucs v4 is a different AI from Meta. Upload the song and it returns the vocals and the music. If one engine gives an error, switch to the other.' }
+};
+document.querySelectorAll('[data-eng]').forEach(function (b) {
+  b.addEventListener('click', function () {
+    var e = ENG[b.dataset.eng];
+    document.querySelectorAll('[data-eng]').forEach(function (x) { x.setAttribute('aria-pressed', x === b); });
+    $('#aiFrame').src = e.frame; $('#engOpen').href = e.open; $('#engNote').textContent = e.note;
+  });
+});
 var drop = $('#drop');
 ['dragenter', 'dragover'].forEach(function (e) { drop.addEventListener(e, function (ev) { ev.preventDefault(); drop.classList.add('over'); }); });
 ['dragleave', 'drop'].forEach(function (e) { drop.addEventListener(e, function (ev) { ev.preventDefault(); drop.classList.remove('over'); }); });
