@@ -7,7 +7,7 @@
 var $ = function (s) { return document.querySelector(s); };
 var Ctx = window.AudioContext || window.webkitAudioContext;
 var dec = null, orig = null, origUrl = '', resUrl = '', resWav = null, name = 'song', showing = 'res', busyT = 0, runId = 0;
-var o = { mode: 'inst', str: 100, lo: 120, hi: 9000, norm: true };
+var o = { mode: 'inst', method: 'smart', str: 100, lo: 120, hi: 9000, tight: 1, norm: true };
 
 function err(t) { var e = $('#err'); e.hidden = !t; e.textContent = t || ''; }
 
@@ -60,7 +60,7 @@ function tick() { return new Promise(function (r) { setTimeout(r, 0); }); }
    In the voice range both sides then carry the same signal (the classic L-R karaoke result), so the result also
    sounds right when folded to mono. Outside that range the song is untouched.
    Vocals only: the voice-range middle, as mono. */
-function render() {
+function renderClassic() {
   var sr = orig.sampleRate, n = orig.length, s = o.str / 100;
   var L = orig.getChannelData(0), R = orig.numberOfChannels > 1 ? orig.getChannelData(1) : L;
   var hi = Math.min(o.hi, sr * 0.45), lo = Math.min(o.lo, hi - 200), i;
@@ -81,6 +81,73 @@ function render() {
     return { length: n, sampleRate: sr, numberOfChannels: 2, getChannelData: function (c) { return c ? outR : outL; } };
   });
 }
+
+/* ---------- Smart method: spectral, per frequency bin ----------
+   The song is cut into short overlapping slices and each slice into frequency bins. A bin is "centered" when the left
+   and right channels carry the same thing in step with each other. Centered bins inside the voice range are turned
+   down, in proportion to how centered they are. Unlike plain subtraction this still works when the singer is a little
+   louder on one side, and it leaves bins that are clearly off to one side alone. */
+var FN = 2048, FH = 512;
+var fftT = null;
+function fftInit() {
+  if (fftT) return fftT;
+  var n = FN, h = n / 2, cs = new Float64Array(h), sn = new Float64Array(h), rev = new Uint16Array(n), i, b, bits = Math.log2(n) | 0;
+  for (i = 0; i < h; i++) { cs[i] = Math.cos(2 * Math.PI * i / n); sn[i] = Math.sin(2 * Math.PI * i / n); }
+  for (i = 0; i < n; i++) { var r = 0; for (b = 0; b < bits; b++) if (i & (1 << b)) r |= 1 << (bits - 1 - b); rev[i] = r; }
+  fftT = { cs: cs, sn: sn, rev: rev };
+  return fftT;
+}
+function fft(re, im, inv) {
+  var t = fftInit(), n = FN, i, j, k, size, half, step, tr, ti, w, c, s;
+  for (i = 0; i < n; i++) { j = t.rev[i]; if (j > i) { tr = re[i]; re[i] = re[j]; re[j] = tr; ti = im[i]; im[i] = im[j]; im[j] = ti; } }
+  for (size = 2; size <= n; size <<= 1) {
+    half = size >> 1; step = n / size;
+    for (i = 0; i < n; i += size) for (j = 0, k = 0; j < half; j++, k += step) {
+      c = t.cs[k]; s = inv ? t.sn[k] : -t.sn[k];
+      var a = i + j, b2 = a + half;
+      tr = c * re[b2] - s * im[b2]; ti = c * im[b2] + s * re[b2];
+      re[b2] = re[a] - tr; im[b2] = im[a] - ti; re[a] += tr; im[a] += ti;
+    }
+  }
+}
+function smooth(x, a, b) { if (x <= a) return 0; if (x >= b) return 1; var t = (x - a) / (b - a); return t * t * (3 - 2 * t); }
+function renderSmart() {
+  var sr = orig.sampleRate, n = orig.length, s = o.str / 100, p = o.tight;
+  var L = orig.getChannelData(0), R = orig.numberOfChannels > 1 ? orig.getChannelData(1) : L;
+  var hi = Math.min(o.hi, sr * 0.45), lo = Math.min(o.lo, hi - 200);
+  var half = FN / 2, w = new Float64Array(half + 1), k, win = new Float64Array(FN);
+  for (k = 0; k <= half; k++) { var f = k * sr / FN; w[k] = smooth(f, lo * 0.7, lo * 1.3) * (1 - smooth(f, hi * 0.8, hi * 1.2)); }
+  for (k = 0; k < FN; k++) win[k] = Math.sqrt(0.5 - 0.5 * Math.cos(2 * Math.PI * (k + 0.5) / FN));
+  var outL = new Float32Array(n), outR = new Float32Array(n);
+  var lr = new Float64Array(FN), li = new Float64Array(FN), rr = new Float64Array(FN), ri = new Float64Array(FN);
+  var scale = 1 / 2, pos = -(FN - FH), inst = o.mode === 'inst', total = Math.ceil((n + FN) / FH), done = 0;
+  fftInit();
+  function chunk() {
+    var end = Math.min(done + 300, total);
+    for (; done < end; done++, pos += FH) {
+      var j, i;
+      for (j = 0; j < FN; j++) { i = pos + j; if (i >= 0 && i < n) { lr[j] = L[i] * win[j]; rr[j] = R[i] * win[j]; } else { lr[j] = rr[j] = 0; } li[j] = ri[j] = 0; }
+      fft(lr, li, false); fft(rr, ri, false);
+      for (k = 1; k < half; k++) {
+        var pl = lr[k] * lr[k] + li[k] * li[k], pr = rr[k] * rr[k] + ri[k] * ri[k], den = pl + pr + 1e-12;
+        var c = 2 * (lr[k] * rr[k] + li[k] * ri[k]) / den; if (c < 0) c = 0;
+        var m = s * w[k] * (p === 1 ? c : Math.pow(c, p)), g = inst ? 1 - m : m, k2 = FN - k;
+        lr[k] *= g; li[k] *= g; rr[k] *= g; ri[k] *= g; lr[k2] *= g; li[k2] *= g; rr[k2] *= g; ri[k2] *= g;
+      }
+      var gz = inst ? 1 : 0; lr[0] *= gz; li[0] *= gz; rr[0] *= gz; ri[0] *= gz; lr[half] *= gz; li[half] *= gz; rr[half] *= gz; ri[half] *= gz;
+      fft(lr, li, true); fft(rr, ri, true);
+      for (j = 0; j < FN; j++) { i = pos + j; if (i >= 0 && i < n) { outL[i] += lr[j] / FN * win[j] * scale; outR[i] += rr[j] / FN * win[j] * scale; } }
+    }
+    setBusy(Math.round(done / total * 100));
+    if (done < total) return tick().then(chunk);
+  }
+  return tick().then(chunk).then(function () {
+    return { length: n, sampleRate: sr, numberOfChannels: 2, getChannelData: function (c) { return c ? outR : outL; } };
+  });
+}
+function setBusy(pct) { $('#busy').textContent = 'Working on it... ' + pct + '%'; }
+function render() { return o.method === 'classic' ? renderClassic() : renderSmart(); }
+
 function peak(b) {
   var p = 0;
   for (var c = 0; c < b.numberOfChannels; c++) { var d = b.getChannelData(c); for (var i = 0; i < d.length; i++) { var a = d[i] < 0 ? -d[i] : d[i]; if (a > p) p = a; } }
@@ -136,6 +203,11 @@ function later() { clearTimeout(busyT); busyT = setTimeout(run, 450); }
 document.querySelectorAll('[data-o]').forEach(function (b) {
   b.addEventListener('click', function () { o.mode = b.dataset.o; document.querySelectorAll('[data-o]').forEach(function (x) { x.setAttribute('aria-pressed', x === b); }); later(); });
 });
+var TN = { 0.5: 'Widest', 1: 'Wide', 1.5: 'Wide', 2: 'Normal', 2.5: 'Normal', 3: 'Tight', 3.5: 'Tight', 4: 'Very tight' };
+document.querySelectorAll('[data-m]').forEach(function (b) {
+  b.addEventListener('click', function () { o.method = b.dataset.m; document.querySelectorAll('[data-m]').forEach(function (x) { x.setAttribute('aria-pressed', x === b); }); $('#tightBox').hidden = o.method !== 'smart'; later(); });
+});
+$('#tight').addEventListener('input', function () { o.tight = +this.value; $('#tightOut').textContent = TN[o.tight] || ''; later(); });
 $('#str').addEventListener('input', function () { o.str = +this.value; $('#strOut').textContent = o.str + '%'; later(); });
 $('#lo').addEventListener('input', function () { o.lo = +this.value; $('#loOut').textContent = o.lo + ' Hz'; later(); });
 $('#hi').addEventListener('input', function () { o.hi = +this.value; $('#hiOut').textContent = (o.hi / 1000).toFixed(1) + ' kHz'; later(); });

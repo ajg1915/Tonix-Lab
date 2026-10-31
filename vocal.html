@@ -43,6 +43,15 @@ audio{width:100%;margin-top:10px}
       <div class="seg" role="group" aria-label="Output">
         <button type="button" data-o="inst" aria-pressed="true">Music only</button><button type="button" data-o="vox" aria-pressed="false">Vocals only</button>
       </div>
+      <div class="field"><span class="lbl">Method</span>
+        <div class="seg" role="group" aria-label="Method">
+          <button type="button" data-m="smart" aria-pressed="true">Smart</button><button type="button" data-m="classic" aria-pressed="false">Classic</button>
+        </div>
+        <p class="note" id="mNote">Smart works on each sound separately and copes better with real recordings. Classic is plain left-minus-right subtraction: quick, and clean when the singer is exactly in the middle.</p></div>
+      <div class="field" id="tightBox"><span class="lbl">How tightly to aim at the middle</span>
+        <div class="rng"><label class="sr" for="tight">Aim</label><span></span><output id="tightOut" for="tight">Wide</output>
+          <input type="range" id="tight" min="0.5" max="4" step="0.5" value="1"></div>
+        <p class="note">Lower takes out more, including some of the music. Higher takes out only what is clearly in the middle, which leaves more of the singer behind.</p></div>
       <div class="field"><span class="lbl">Strength</span>
         <div class="rng"><label class="sr" for="str">Strength</label><span></span><output id="strOut" for="str">100%</output>
           <input type="range" id="str" min="0" max="100" step="5" value="100"></div>
@@ -67,6 +76,7 @@ audio{width:100%;margin-top:10px}
       <audio id="player" controls preload="auto"></audio>
       <p class="note" id="busy" role="status">Working on it. Long songs take a few seconds.</p>
       <div style="display:flex;gap:10px;margin-top:12px;flex-wrap:wrap"><button class="btn pri" type="button" id="dl" style="flex:1 1 200px" disabled>Download WAV</button></div>
+      <p class="note"><b>Still hearing the singer?</b> Set the aim to Widest and the strength to 100%. A faint echo of the voice can remain, because the reverb and doubled vocals on a real recording are spread across both sides and no simple method can reach them.</p>
       <p class="note">Works best on stereo songs where the singer is in the center, which is most studio recordings. It cannot remove reverb, or backing vocals placed to the sides. The file saves as a WAV, which is large but lossless.</p>
     </div>
   </div>
