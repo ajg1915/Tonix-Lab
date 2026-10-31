@@ -10,7 +10,7 @@ var Ctx = window.AudioContext || window.webkitAudioContext;
 var MODEL_URL = 'https://huggingface.co/nsosu/demucs-onnx/resolve/main/umxl_vocals.onnx';
 try { var qp = new URLSearchParams(location.search).get('model'); if (qp && /^(localhost|127\.0\.0\.1)$/.test(location.hostname)) MODEL_URL = qp; } catch (e) {}
 var CACHE = 'tonix-models-v1';
-var NFFT = 4096, HOP = 1024, BINS = 2049, SR = 44100, CORE = 20 * SR, CTX = 3 * SR, XF = SR >> 1;
+var NFFT = 4096, HOP = 1024, BINS = 2049, SR = 44100, CORE = ((navigator.deviceMemory && navigator.deviceMemory <= 4) || /Android|iPhone|iPad/i.test(navigator.userAgent) ? 8 : 20) * SR, CTX = 3 * SR, XF = SR >> 1;
 
 var file = null, cancel = false, running = false, session = null, urls = [];
 function msg(t) { $('#biMsg').textContent = t || ''; }
@@ -88,29 +88,61 @@ function toWav(L, R) {
 }
 
 /* ---------- model: download once, keep it ---------- */
+/* Sources are tried in order. Put the file on this site (models/umxl_vocals.onnx) and it is used first. */
+var SOURCES = [new URL('models/umxl_vocals.onnx', location.href).href, MODEL_URL, MODEL_URL.replace('https://huggingface.co/', 'https://hf-mirror.com/')];
+function sleep(ms) { return new Promise(function (r) { setTimeout(r, ms); }); }
+function fetchResume(url) {
+  /* downloads with up to 8 tries, continuing from where it stopped */
+  var parts = [], got = 0, total = 0, tries = 0;
+  function go() {
+    if (cancel) throw new Error('cancelled');
+    var h = got ? { Range: 'bytes=' + got + '-' } : {};
+    return fetch(url, { headers: h }).then(function (res) {
+      if (res.status === 404 && !got) throw new Error('missing');
+      if (!(res.ok || res.status === 206)) throw new Error('The model download failed (' + res.status + ').');
+      if (got && res.status !== 206) { parts = []; got = 0; }
+      var cl = +res.headers.get('content-length') || 0; if (!total) total = cl; else if (got === 0) total = cl;
+      var rd = res.body.getReader();
+      function pump() {
+        return rd.read().then(function (r) {
+          if (r.done) return;
+          parts.push(r.value); got += r.value.length;
+          if (total) { bar(Math.min(40, got / total * 40)); msg('Downloading the model (first time only): ' + Math.round(got / 1048576) + ' of ' + Math.round(total / 1048576) + ' MB'); }
+          if (cancel) { try { rd.cancel(); } catch (e) {} throw new Error('cancelled'); }
+          return pump();
+        });
+      }
+      return pump();
+    }).then(function () {
+      if (total && got < total) throw new Error('short');
+      return new Blob(parts);
+    }, function (e) {
+      if (e && (e.message === 'cancelled' || e.message === 'missing')) throw e;
+      if (++tries > 8) throw e;
+      msg('Connection hiccup, retrying (' + tries + ' of 8)...');
+      return sleep(Math.min(8000, 800 * tries)).then(go);
+    }).then(function (r) { return r; });
+  }
+  return go();
+}
 function getModel() {
   var cp = ('caches' in window) ? caches.open(CACHE) : Promise.resolve(null);
   return cp.then(function (cache) {
     return (cache ? cache.match(MODEL_URL) : Promise.resolve(null)).then(function (hit) {
       if (hit) { msg('Loading the model from this device...'); return hit.arrayBuffer(); }
       msg('Downloading the model (first time only)...');
-      return fetch(MODEL_URL).then(function (res) {
-        if (!res.ok) throw new Error('The model download failed (' + res.status + ').');
-        var total = +res.headers.get('content-length') || 0, got = 0, chunks = [], rd = res.body.getReader();
-        function pump() {
-          return rd.read().then(function (r) {
-            if (r.done) return;
-            chunks.push(r.value); got += r.value.length;
-            if (total) { bar(got / total * 40); msg('Downloading the model (first time only): ' + Math.round(got / 1048576) + ' of ' + Math.round(total / 1048576) + ' MB'); }
-            if (cancel) throw new Error('cancelled');
-            return pump();
-          });
-        }
-        return pump().then(function () {
-          var buf = new Uint8Array(got), o = 0; chunks.forEach(function (c) { buf.set(c, o); o += c.length; }); chunks = null;
-          if (cache) { try { cache.put(MODEL_URL, new Response(buf.slice().buffer)).catch(function () {}); } catch (e) {} }
-          return buf.buffer;
+      var i = 0, last;
+      function trySrc() {
+        if (i >= SOURCES.length) throw last || new Error('The model download failed.');
+        var u = SOURCES[i++];
+        return fetchResume(u).catch(function (e) {
+          if (e && e.message === 'cancelled') throw e;
+          last = e && e.message === 'missing' ? last : e; return trySrc();
         });
+      }
+      return trySrc().then(function (blob) {
+        if (cache) { try { cache.put(MODEL_URL, new Response(blob)).catch(function () {}); } catch (e) {} }
+        return blob.arrayBuffer();
       });
     });
   });
@@ -121,7 +153,7 @@ function getSession() {
     msg('Starting the model...');
     ort.env.wasm.wasmPaths = new URL('ort/', location.href).href;
     ort.env.wasm.numThreads = self.crossOriginIsolated ? Math.max(1, Math.min(4, (navigator.hardwareConcurrency || 2) >> 1)) : 1;
-    return ort.InferenceSession.create(new Uint8Array(buf), { executionProviders: ['wasm'], graphOptimizationLevel: 'all' });
+    return ort.InferenceSession.create(new Uint8Array(buf), { executionProviders: ['wasm'], graphOptimizationLevel: 'basic', enableCpuMemArena: false, enableMemPattern: false });
   }).then(function (s) { session = s; return s; });
 }
 
@@ -210,7 +242,7 @@ function run() {
 function explain(e) {
   var m = (e && e.message) || String(e);
   if (/Failed to fetch|NetworkError|download failed/i.test(m)) return 'Could not download the model. Check your connection and try again. (' + m + ')';
-  if (/out of memory|allocation|memory/i.test(m)) return 'This device ran out of memory. Try a computer, or a shorter song. (' + m + ')';
+  if (/out of memory|allocation|memory/i.test(m)) return 'This device ran out of memory. Close other tabs and try again, use a computer, or try a shorter song. (' + m + ')';
   return 'Something went wrong: ' + m;
 }
 function dl(u, n) { var a = document.createElement('a'); a.href = u; a.download = n; document.body.appendChild(a); a.click(); a.remove(); }
