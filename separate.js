@@ -13,6 +13,14 @@ var CACHE = 'tonix-models-v1';
 var NFFT = 4096, HOP = 1024, BINS = 2049, SR = 44100, CORE = ((navigator.deviceMemory && navigator.deviceMemory <= 4) || /Android|iPhone|iPad/i.test(navigator.userAgent) ? 8 : 20) * SR, CTX = 3 * SR, XF = SR >> 1;
 
 var LADDER = [{ core: 0, opt: 'basic', mem: false }, { core: 6, opt: 'disabled', mem: true }, { core: 3, opt: 'disabled', mem: true }], rung = 0, stage = '';
+var logBuf = [];
+['warn', 'error', 'log'].forEach(function (k) {
+  var orig = console[k];
+  console[k] = function () {
+    try { var t = Array.prototype.slice.call(arguments).join(' '); if (/onnx|ort|\[[EWF]:|runtime|operator|node|memory|alloc|abort/i.test(t)) { logBuf.push(t.slice(0, 220)); if (logBuf.length > 6) logBuf.shift(); } } catch (e) {}
+    return orig.apply(console, arguments);
+  };
+});
 var file = null, cancel = false, running = false, session = null, urls = [];
 function msg(t) { $('#biMsg').textContent = t || ''; }
 function bar(p) { $('#biBar').style.width = Math.max(0, Math.min(100, p)) + '%'; }
@@ -154,7 +162,8 @@ function getSession() {
     msg('Starting the model...');
     ort.env.wasm.wasmPaths = new URL('ort/', location.href).href;
     ort.env.wasm.numThreads = self.crossOriginIsolated ? Math.max(1, Math.min(4, (navigator.hardwareConcurrency || 2) >> 1)) : 1;
-    var L = LADDER[rung], so = { executionProviders: ['wasm'], graphOptimizationLevel: L.opt };
+    var L = LADDER[rung], so = { executionProviders: ['wasm'], graphOptimizationLevel: L.opt, logSeverityLevel: 2 };
+    try { ort.env.logLevel = 'warning'; } catch (e) {}
     if (!L.mem) { so.enableCpuMemArena = false; so.enableMemPattern = false; }
     stage = 'starting the model';
     return ort.InferenceSession.create(new Uint8Array(buf), so);
@@ -286,8 +295,9 @@ function explain(e) {
   var m = (e && e.message) || String(e);
   if (/Failed to fetch|NetworkError|download failed/i.test(m)) return 'Could not download the model. Check your connection and try again. (' + m + ')';
   if (/out of memory|allocation|memory/i.test(m)) return 'This device ran out of memory. Close other tabs and try again, use a computer, or try a shorter song. (' + m + ')';
-  if (/^\d+$/.test(m)) return 'The AI engine stopped with internal code ' + m + ' while ' + (stage || 'working') + ' (setting ' + (rung + 1) + ' of ' + LADDER.length + '). Please send me this message. Usually it means this browser ran out of memory: close other tabs, or try Chrome or Edge on a computer.';
-  return 'Something went wrong while ' + (stage || 'working') + ': ' + m;
+  var more = logBuf.length ? ' Engine log: ' + logBuf.slice(-3).join(' | ') : '';
+  if (/^\d+$/.test(m)) return 'The AI engine stopped with internal code ' + m + ' while ' + (stage || 'working') + ' (setting ' + (rung + 1) + ' of ' + LADDER.length + '). Usually it means this browser ran out of memory: close other tabs, or try Chrome or Edge on a computer.' + more;
+  return 'Something went wrong while ' + (stage || 'working') + ': ' + m + more;
 }
 function dl(u, n) { var a = document.createElement('a'); a.href = u; a.download = n; document.body.appendChild(a); a.click(); a.remove(); }
 
