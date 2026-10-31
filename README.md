@@ -16,7 +16,6 @@ Open the live page, then install it: Android Chrome shows **Install app**; on iP
 | File | What it is |
 | --- | --- |
 | `index.html`, `app.css`, `app.js` | The hub: Home, Go live, Share & embed, How to |
-| `vocal.html`, `vocal.js` | Vocal remover: removes or isolates the centered vocal in an audio file, all in the browser |
 | `studio.html` | The Studio audio engine and recorder |
 | `sw.js`, `manifest.webmanifest` | Offline support and install |
 

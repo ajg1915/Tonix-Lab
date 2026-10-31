@@ -33,10 +33,6 @@ audio{width:100%;margin-top:10px}
   <h1>Vocal remover</h1>
   <p class="lede">Take the singer out of a song and keep the music, right in your browser. Your file never leaves your device.</p>
 
-  <div class="seg" role="group" aria-label="Which tool" style="margin:12px 0 14px">
-    <button type="button" data-tab="bi" aria-pressed="true">Built-in AI</button><button type="button" data-tab="ai" aria-pressed="false">AI on Hugging Face</button><button type="button" data-tab="quick" aria-pressed="false">Quick</button>
-  </div>
-
   <div class="stack" id="bi">
     <div class="panel">
       <div class="ph"><h2 class="ph-t">Built-in AI separation</h2><span class="pill" id="biState">Ready</span></div>
@@ -57,81 +53,7 @@ audio{width:100%;margin-top:10px}
     </div>
   </div>
 
-  <div class="stack" id="ai" hidden>
-    <div class="panel">
-      <div class="ph"><h2 class="ph-t">AI vocal separator</h2></div>
-      <ol class="steps">
-        <li><div><b>Upload your song</b><span>Use the box below. MP3, WAV and most audio files work.</span></div></li>
-        <li><div><b>Pick a model</b><span>Start with <b>UVR-MDX-NET-Inst_HQ_3</b> for the music without the singer. If some voice is left, try <b>UVR-MDX-NET-Voc_FT</b> or <b>Kim_Vocal_2</b>.</span></div></li>
-        <li><div><b>Run it and download</b><span>You get the music and the voice as two separate files. Long songs can take a few minutes.</span></div></li>
-      </ol>
-      <div class="field"><span class="lbl">AI engine</span>
-        <div class="seg" role="group" aria-label="AI engine">
-          <button type="button" data-eng="uvr" aria-pressed="true">Audio Separator</button><button type="button" data-eng="demucs" aria-pressed="false">Demucs v4</button>
-        </div>
-        <p class="note" id="engNote">Audio Separator uses Ultimate Vocal Remover models and lets you pick which one. If one engine gives an error, switch to the other.</p></div>
-      <a class="btn pri" id="engOpen" href="https://huggingface.co/spaces/MohamedRashad/Audio-Separator" target="_blank" rel="noopener noreferrer" style="margin-top:12px">Open in its own tab (more reliable on phones)</a>
-      <p class="note">These are free AI models running on Hugging Face, so your song is sent there to be processed. If the box below stays blank, shows an error or says the Space is sleeping, wait a minute, switch engine, or use the button above.</p>
-    </div>
-    <iframe id="aiFrame" title="AI vocal separator" src="https://mohamedrashad-audio-separator.hf.space" allow="clipboard-write" loading="lazy"></iframe>
-    <p class="note">AI separation by <a href="https://huggingface.co/spaces/MohamedRashad/Audio-Separator" target="_blank" rel="noopener noreferrer">Audio Separator</a> on Hugging Face, using Ultimate Vocal Remover models. Not part of Tonix Lab.</p>
-  </div>
-
-  <div class="stack" id="app" hidden>
-    <div class="panel"><p class="note" style="margin:0"><b>Quick method.</b> Works fully offline in your browser, but only helps when the singer is exactly in the middle of the mix. It does very little on most real songs, especially live recordings. Use the AI separator for those.</p></div>
-    <div class="panel">
-      <div class="ph"><h2 class="ph-t">1. Choose a song</h2></div>
-      <label class="drop" id="drop" for="file"><b>Tap to choose an audio file</b><span>or drop it here. MP3, WAV, M4A, OGG, FLAC and more.</span></label>
-      <input type="file" id="file" accept="audio/*,.mp3,.wav,.m4a,.aac,.ogg,.flac,.opus" hidden>
-      <p class="note fname" id="fname"></p>
-      <p class="note warn" id="monoWarn" hidden>This file is mono, so both sides are identical and there is nothing to separate. Vocals cannot be removed from it with this method. Try a stereo version.</p>
-      <p class="note err" id="err" role="alert" hidden></p>
-    </div>
-
-    <div class="panel" id="opts" hidden>
-      <div class="ph"><h2 class="ph-t">2. Choose what to keep</h2></div>
-      <div class="seg" role="group" aria-label="Output">
-        <button type="button" data-o="inst" aria-pressed="true">Music only</button><button type="button" data-o="vox" aria-pressed="false">Vocals only</button>
-      </div>
-      <div class="field"><span class="lbl">Method</span>
-        <div class="seg" role="group" aria-label="Method">
-          <button type="button" data-m="smart" aria-pressed="true">Smart</button><button type="button" data-m="classic" aria-pressed="false">Classic</button>
-        </div>
-        <p class="note" id="mNote">Smart works on each sound separately and copes better with real recordings. Classic is plain left-minus-right subtraction: quick, and clean when the singer is exactly in the middle.</p></div>
-      <div class="field" id="tightBox"><span class="lbl">How tightly to aim at the middle</span>
-        <div class="rng"><label class="sr" for="tight">Aim</label><span></span><output id="tightOut" for="tight">Wide</output>
-          <input type="range" id="tight" min="0.5" max="4" step="0.5" value="1"></div>
-        <p class="note">Lower takes out more, including some of the music. Higher takes out only what is clearly in the middle, which leaves more of the singer behind.</p></div>
-      <div class="field"><span class="lbl">Strength</span>
-        <div class="rng"><label class="sr" for="str">Strength</label><span></span><output id="strOut" for="str">100%</output>
-          <input type="range" id="str" min="0" max="100" step="5" value="100"></div>
-        <p class="note">100% takes out as much as possible. Lower it to leave a little of the singer in.</p></div>
-      <div class="field"><span class="lbl">Keep the bass below</span>
-        <div class="rng"><label class="sr" for="lo">Keep the bass below</label><span></span><output id="loOut" for="lo">120 Hz</output>
-          <input type="range" id="lo" min="40" max="400" step="10" value="120"></div>
-        <p class="note">Kick and bass sit in the middle of the mix, just like the vocal. This keeps them.</p></div>
-      <div class="field"><span class="lbl">Keep the highs above</span>
-        <div class="rng"><label class="sr" for="hi">Keep the highs above</label><span></span><output id="hiOut" for="hi">9.0 kHz</output>
-          <input type="range" id="hi" min="4000" max="16000" step="500" value="9000"></div>
-        <p class="note">Keeps cymbals and hi-hats bright. Raise it if some singing is left, lower it if the music sounds thin.</p></div>
-      <label class="chk"><input type="checkbox" id="norm" checked><span>Match the loudness<small>Raises the result back up, since removing the vocal makes it quieter.</small></span></label>
-    </div>
-
-    <div class="panel" id="out" hidden>
-      <div class="ph"><h2 class="ph-t">3. Listen and save</h2><span class="pill" id="state">Ready</span></div>
-      <div class="ab" role="group" aria-label="Listen to">
-        <button class="btn" type="button" id="abOrig" aria-pressed="false">Original</button>
-        <button class="btn pri" type="button" id="abRes" aria-pressed="true">Result</button>
-      </div>
-      <audio id="player" controls preload="auto"></audio>
-      <p class="note" id="busy" role="status">Working on it. Long songs take a few seconds.</p>
-      <div style="display:flex;gap:10px;margin-top:12px;flex-wrap:wrap"><button class="btn pri" type="button" id="dl" style="flex:1 1 200px" disabled>Download WAV</button></div>
-      <p class="note"><b>Still hearing the singer?</b> Set the aim to Widest and the strength to 100%. A faint echo of the voice can remain, because the reverb and doubled vocals on a real recording are spread across both sides and no simple method can reach them.</p>
-      <p class="note">Works best on stereo songs where the singer is in the center, which is most studio recordings. It cannot remove reverb, or backing vocals placed to the sides. The file saves as a WAV, which is large but lossless.</p>
-    </div>
-  </div>
 </div>
 <script src="ort/ort.wasm.min.js"></script>
-<script src="vocal.js"></script>
 <script src="separate.js"></script>
 </body></html>
